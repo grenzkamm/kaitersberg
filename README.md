@@ -12,6 +12,43 @@ something plausible and wrong. So the first thing produced is not code - it is a
 plan you can argue with. Everything after that reads the plan instead of guessing,
 and where the plan is silent, the agent asks instead of inventing.
 
+![Kaitersberg - from briefing to merged features](docs/kaitersberg-social-preview.png)
+
+## Quick start
+
+Install Kaitersberg once, then open the repository of the product you want to plan.
+The first run turns a short briefing into reviewable planning documents; it does
+not write product code.
+
+**Claude Code**
+
+```text
+/plugin marketplace add https://github.com/grenzkamm/kaitersberg
+/plugin install kaitersberg@kaitersberg
+/kaitersberg:plan-product <your one-paragraph product briefing>
+```
+
+Run the first two commands once per installation and the last command inside your
+product repository.
+
+**Codex**
+
+```bash
+codex plugin marketplace add https://github.com/grenzkamm/kaitersberg
+codex plugin add kaitersberg@kaitersberg
+```
+
+Start a new Codex thread in your product repository, then invoke:
+
+```text
+$kaitersberg:plan-product <your one-paragraph product briefing>
+```
+
+Review the generated product plan and feature map before continuing with
+`/kaitersberg:architecture` or `$kaitersberg:architecture`. See
+[the full installation and workflow guide](#install-the-framework-as-a-plugin)
+for local checkouts, updates and the complete pipeline.
+
 ## Project status
 
 Kaitersberg is in its public testing phase. The pipeline and document contracts may
@@ -144,11 +181,12 @@ clone. The URL form needs nothing checked out:
 
 ```bash
 codex plugin marketplace add https://github.com/grenzkamm/kaitersberg
+codex plugin add kaitersberg@kaitersberg
 codex plugin marketplace add /absolute/path/to/kaitersberg   # or a clone
 ```
 
-Restart the ChatGPT desktop app, open the Plugins Directory, select the
-**Kaitersberg** source and install the plugin. Invoke a skill as, for
+Alternatively, restart the ChatGPT desktop app, open the Plugins Directory, select
+the **Kaitersberg** source and install the plugin there. Invoke a skill as, for
 example, `$kaitersberg:architecture`.
 
 For Claude Code, run these commands inside a session:
