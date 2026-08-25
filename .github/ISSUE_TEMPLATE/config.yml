@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Ask a question
+    url: https://github.com/grenzkamm/kaitersberg/discussions/categories/q-a
+    about: Get help with installing or using Kaitersberg in GitHub Discussions.
   - name: Security vulnerability
     url: https://github.com/grenzkamm/kaitersberg/security/advisories/new
     about: Report vulnerabilities privately; do not put sensitive details in an issue.
