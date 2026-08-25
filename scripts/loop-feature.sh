@@ -6,7 +6,8 @@
 # chair, and stops where the framework wants one. Run it in the *product*
 # repository, not here, with the kaitersberg plugin installed.
 #
-# Every stage is its own `claude -p` process. That is the load-bearing part:
+# Every stage is its own `claude -p` or `codex exec` process. That is the
+# load-bearing part:
 # a new process is a new session, so /review gets the fresh session it requires
 # instead of merely asking for one.
 #
@@ -18,7 +19,7 @@
 # Watching it: the tool calls of the running stage go to stderr as they happen.
 # The raw event stream is appended to <feature>/loop.log, so a second terminal
 # can follow along with
-#   tail -f features/PROJ-x-*/loop.log | jq -r 'select(.type=="assistant")'
+#   tail -f features/PROJ-x-*/loop.log | jq
 #
 # Outliving the window: every stage is a child of the shell that started this, so
 # closing the terminal - or ending the agent session that started it for you - kills
@@ -35,10 +36,10 @@
 #   STAGE_DONE_CMD='curl --fail-with-body -sS -o /dev/null -X POST https://relay/hooks/<id> -H "X-Webhook-Secret: <s>"' \
 #     scripts/loop-feature.sh PROJ-3
 # Exit codes: 0 green, 1 no green result, 2 a decision is needed, 3 a run failed.
-# Spend is not capped here: the runs go through the subscription. MAX_TURNS is
-# what stops a stage that circles - 400, because /qa on a feature with 57
-# acceptance criteria ran out at 200 with its report written and the board not yet
-# moved. Reaching it is not a failure: the stage goes round again.
+# Spend is not capped here: the runs go through the subscription. Claude's
+# MAX_TURNS stops a stage that circles; both harnesses have STAGE_TIMEOUT as the
+# wall-clock bound. Reaching Claude's turn limit is not a failure: the stage goes
+# round again.
 #
 #   PR=0 scripts/loop-feature.sh PROJ-3   # ... and stop before the pull request
 #
@@ -47,6 +48,38 @@ set -euo pipefail
 F=${1:-}
 [[ $F =~ ^[A-Za-z]+-[0-9]+$ ]] || { echo "usage: $0 PROJ-x" >&2; exit 64; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 69; }
+
+resolve_harness() {
+  local requested=${KAITERSBERG_HARNESS:-auto}
+  case $requested in
+    claude|codex) printf '%s\n' "$requested" ;;
+    auto)
+      if [[ -n ${CODEX_THREAD_ID:-}${CODEX_SESSION_ID:-} ]] && command -v codex >/dev/null; then
+        printf '%s\n' codex
+      elif [[ -n ${CLAUDE_CODE_SESSION_ID:-}${CLAUDE_CODE_ENTRYPOINT:-}${CLAUDECODE:-} ]] \
+        && command -v claude >/dev/null; then
+        printf '%s\n' claude
+      elif command -v claude >/dev/null && ! command -v codex >/dev/null; then
+        printf '%s\n' claude
+      elif command -v codex >/dev/null && ! command -v claude >/dev/null; then
+        printf '%s\n' codex
+      elif command -v claude >/dev/null && command -v codex >/dev/null; then
+        echo "both claude and codex are installed; set KAITERSBERG_HARNESS=claude or codex" >&2
+        return 64
+      else
+        echo "neither claude nor codex is installed" >&2
+        return 69
+      fi
+      ;;
+    *)
+      echo "invalid KAITERSBERG_HARNESS=$requested (expected auto, claude or codex)" >&2
+      return 64
+      ;;
+  esac
+}
+
+HARNESS=$(resolve_harness) || exit $?
+command -v "$HARNESS" >/dev/null || { echo "$HARNESS is required" >&2; exit 69; }
 
 # macOS ships no `timeout`; coreutils installs it as `gtimeout`. Without either,
 # run uncapped rather than not at all - --max-turns still bounds a stage that
@@ -75,7 +108,8 @@ mkdir -p "$STATE_DIR"
 mkdir "$LOCK_DIR" 2>/dev/null || {
   echo "$F already has a loop lock at $LOCK_DIR" >&2; exit 75;
 }
-trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
+RUN_TMP=$(mktemp -d)
+trap 'rm -rf -- "$RUN_TMP"; rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
 if [[ ${LOOP_RESET:-0} == 1 && -f $STATE_FILE ]]; then
   mv "$STATE_FILE" "$STATE_FILE.$(date -u +%Y%m%dT%H%M%SZ).bak"
@@ -113,6 +147,10 @@ claude_run() {
   if [[ -n $TIMEOUT_BIN ]]; then "$TIMEOUT_BIN" "${STAGE_TIMEOUT:-3h}" claude "$@"; else claude "$@"; fi
 }
 
+codex_run() {
+  if [[ -n $TIMEOUT_BIN ]]; then "$TIMEOUT_BIN" "${STAGE_TIMEOUT:-3h}" codex "$@"; else codex "$@"; fi
+}
+
 schema_for() {
   case $1 in
     build) outcomes='["complete","incomplete","blocked"]' ;;
@@ -125,18 +163,24 @@ schema_for() {
 }
 
 NOTE=""      # an extra line prepended to the next stage's prompt, used by /pr
-stage() { # stage <skill> <permission flags...> -> tool calls to stderr, outcome and sha to stdout
-  local skill=$1; shift
-  local schema
-  schema=$(schema_for "$skill")
-  echo "== $F: $skill" >&2
-  claude_run -p "/$SKILL_NS:$skill $F
-${NOTE}This is unattended run $RUN_ID. Read lifecycle state from the default
+stage_prompt() {
+  local skill=$1 invocation
+  if [[ $HARNESS == codex ]]; then
+    invocation="\$$SKILL_NS:$skill $F"
+  else
+    invocation="/$SKILL_NS:$skill $F"
+  fi
+  printf '%s\n%s' "$invocation" "${NOTE}This is unattended run $RUN_ID. Read lifecycle state from the default
 checkout and feature artifacts from the feature worktree. Use the skill's full or
 delta/retest mode for the current HEAD. Return exactly one structured outcome from
 the supplied schema; include the feature HEAD as head_sha. Use incomplete only when
 the same stage must resume, and blocked only for a decision the documents do not
-answer." \
+answer."
+}
+
+claude_stage() { # claude_stage <skill> <schema> <prompt> <permission flags...>
+  local skill=$1 schema=$2 prompt=$3; shift 3
+  claude_run -p "$prompt" \
     --max-turns "${MAX_TURNS:-400}" \
     --output-format stream-json --verbose --json-schema "$schema" "$@" \
   | tee -a "$D/loop.log" \
@@ -149,10 +193,44 @@ answer." \
       while IFS= read -r line; do
         case $line in
           RESULT:*) last=${line#RESULT:} ;;
-          *)         printf "%s\n" "$line" >&2 ;;  # the live ticker
+          *)         printf "%s\n" "$line" >&2 ;;
         esac
       done
       printf "%s\n" "$last"; }
+}
+
+codex_stage() { # codex_stage <skill> <schema> <prompt>
+  local skill=$1 schema=$2 prompt=$3 status=0
+  local schema_file="$RUN_TMP/$skill-schema.json"
+  local result_file="$RUN_TMP/$skill-result.json"
+  printf '%s\n' "$schema" > "$schema_file"
+  : > "$result_file"
+  codex_run exec --ephemeral --json --sandbox "${CODEX_SANDBOX:-workspace-write}" \
+    --output-schema "$schema_file" --output-last-message "$result_file" "$prompt" \
+  | tee -a "$D/loop.log" \
+  | jq -r --unbuffered '
+      if .type == "item.started" and .item.type == "command_execution" then
+        "   shell"
+      elif .type == "item.started" and .item.type == "mcp_tool_call" then
+        "   \(.item.server // "mcp").\(.item.tool // "tool")"
+      elif .type == "turn.failed" or .type == "error" then
+        "   \(.error.message // .message // "Codex stage failed")"
+      else empty end' >&2 || status=$?
+  (( status == 0 )) || return "$status"
+  jq -er '[.outcome, .head_sha] | @tsv' "$result_file"
+}
+
+stage() { # stage <skill> <permission flags...> -> tool calls to stderr, outcome and sha to stdout
+  local skill=$1; shift
+  local schema prompt
+  schema=$(schema_for "$skill")
+  echo "== $F: $skill" >&2
+  prompt=$(stage_prompt "$skill")
+  if [[ $HARNESS == codex ]]; then
+    codex_stage "$skill" "$schema" "$prompt"
+  else
+    claude_stage "$skill" "$schema" "$prompt" "$@"
+  fi
 }
 
 LOG_START=1                      # the log is appended across runs; summarise only ours
@@ -168,21 +246,34 @@ summary() {
   [[ -s $D/loop.log ]] || return
   local wall_minutes=$(( (SECONDS - RUN_STARTED) / 60 ))
   echo
-  tail -n +"$LOG_START" "$D/loop.log" | jq -s -r --arg st "$STAGES" --arg wall "$wall_minutes" '
-    [ .[] | select(.type == "result") ] | group_by(.session_id) | map(max_by(.num_turns))
-    | { turns: (map(.num_turns) | add // 0),
-        min:   ((map(.duration_ms) | add // 0) / 60000 | floor),
-        cost:  ((map(.total_cost_usd) | add // 0) * 100 | round / 100),
-        inp:   (map(.usage.input_tokens // 0) | add // 0),
-        out:   (map(.usage.output_tokens // 0) | add // 0),
-        cache: (map(.usage.cache_read_input_tokens // 0) | add // 0) }
-    | "stages \($st) · agent-reported \(.min) min · actual wall clock \($wall) min",
-      "tokens in \(.inp) · out \(.out) · cache read \(.cache)",
-      "estimated cost $\(.cost) - an estimate of API list price, not a subscription bill"'
+  if [[ $HARNESS == codex ]]; then
+    tail -n +"$LOG_START" "$D/loop.log" | jq -s -r --arg st "$STAGES" --arg wall "$wall_minutes" '
+      [ .[] | select(.type == "turn.completed") ]
+      | { turns: length,
+          inp:   (map(.usage.input_tokens // 0) | add // 0),
+          out:   (map(.usage.output_tokens // 0) | add // 0),
+          cache: (map(.usage.cached_input_tokens // 0) | add // 0) }
+      | "stages \($st) · Codex turns \(.turns) · actual wall clock \($wall) min",
+        "tokens in \(.inp) · out \(.out) · cache read \(.cache)",
+        "estimated cost unavailable in the Codex JSONL stream"'
+  else
+    tail -n +"$LOG_START" "$D/loop.log" | jq -s -r --arg st "$STAGES" --arg wall "$wall_minutes" '
+      [ .[] | select(.type == "result") ] | group_by(.session_id) | map(max_by(.num_turns))
+      | { turns: (map(.num_turns) | add // 0),
+          min:   ((map(.duration_ms) | add // 0) / 60000 | floor),
+          cost:  ((map(.total_cost_usd) | add // 0) * 100 | round / 100),
+          inp:   (map(.usage.input_tokens // 0) | add // 0),
+          out:   (map(.usage.output_tokens // 0) | add // 0),
+          cache: (map(.usage.cache_read_input_tokens // 0) | add // 0) }
+      | "stages \($st) · agent-reported \(.min) min · actual wall clock \($wall) min",
+        "tokens in \(.inp) · out \(.out) · cache read \(.cache)",
+        "estimated cost $\(.cost) - an estimate of API list price, not a subscription bill"'
+  fi
 }
 
 cleanup() {
   summary
+  rm -rf -- "$RUN_TMP"
   rmdir "$LOCK_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT

@@ -147,7 +147,7 @@ bounded; migrations, permission boundaries and broad shared changes force a full
 
 | | For | Why |
 |---|---|---|
-| [Claude Code](https://claude.com/claude-code) 2.1.205+ or the Codex desktop app | everything | The skills are plugins for one of the two. The version floor is what the unattended loop needs (`--json-schema`) |
+| [Claude Code](https://claude.com/claude-code) 2.1.205+ or the Codex desktop app with Codex CLI 0.149.1+ | everything | The skills are plugins for one of the two. The version floors are what the unattended loop's structured stage results need (`--json-schema` or `codex exec --output-schema`) |
 | `git` | everything | Features are built in worktrees |
 | `python3`, `jq` | the loop | Python persists its state; `jq` reads the loop's event stream |
 | `tmux` or `coreutils` | the loop, optionally | To detach it, and for a wall clock per stage. It runs without either |
@@ -274,15 +274,26 @@ pull request - in the product repository:
 
 ```bash
 cd <product repo> && git checkout main
-ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x     # build → review → qa → pull request
-PR=0     <framework>/scripts/loop-feature.sh PROJ-x     # ... stopping before the pull request
+KAITERSBERG_HARNESS=claude ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x
+KAITERSBERG_HARNESS=codex  ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x
+KAITERSBERG_HARNESS=codex  PR=0 <framework>/scripts/loop-feature.sh PROJ-x  # stop before the pull request
 ```
 
-The unattended review gets no general shell and no raw `git *` permission. It uses
-`scripts/review-git.py`, whose fixed queries can inspect status, diffs, commits,
-worktrees and tracked content without admitting mutating Git commands, aliases,
-external diff drivers or inherited repository state. The same restriction is
-inherited by its parallel review lanes.
+`KAITERSBERG_HARNESS` may be omitted inside a Claude or Codex session, where the
+script detects the parent harness, or on a machine that has only one of the two
+commands. When both commands are installed in an ordinary shell, the script stops
+and asks for an explicit choice instead of silently running the wrong account.
+Each stage is a new `claude -p` or `codex exec --ephemeral` process. If somebody
+asks `/build` or `$build` for the whole delivery, the skill starts this documented
+runner; it never recreates review and QA inside the builder's session.
+
+The unattended review uses `scripts/review-git.py`, whose fixed queries inspect
+status, diffs, commits, worktrees and tracked content without admitting mutating
+Git commands, aliases, external diff drivers or inherited repository state. The
+Claude runner additionally enforces that boundary with its tool allowlist. Codex
+CLI needs `workspace-write` because the stage writes `review.md`; it receives the
+same no-raw-Git rule and helper, but Codex CLI does not currently expose a
+file-specific allowlist that can enforce this boundary outside the model.
 
 Build gates also keep their raw output out of the agent context and the feature
 worktree: every command gets a unique temporary log. Only bounded final or failing
@@ -305,7 +316,7 @@ flight dies with its work uncommitted in the worktree. Detach it if it has to
 outlive the window:
 
 ```bash
-tmux new -d -s PROJ-x 'ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x'
+tmux new -d -s PROJ-x 'KAITERSBERG_HARNESS=codex ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x'
 tmux attach -t PROJ-x     # look; ctrl-b d to let go again
 ```
 
