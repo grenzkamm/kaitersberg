@@ -84,6 +84,19 @@ class LoopDashboardApiTest(unittest.TestCase):
     def test_historical_em_dash_empty_marker_remains_readable(self) -> None:
         self.assertIsNone(loop_dashboard.api_value("\u2014"))
 
+    def test_decorated_branch_cell_yields_the_bare_branch(self) -> None:
+        # /build writes "`feature/x` in `.worktrees/x`"; matching against
+        # `git worktree list` needs the name alone or every doc falls back
+        # to the stale default-branch copy.
+        self.assertEqual(
+            loop_dashboard.branch_name(
+                "`feature/ZWER-2-kundenfenster` in `.worktrees/ZWER-2-kundenfenster`"
+            ),
+            "feature/ZWER-2-kundenfenster",
+        )
+        self.assertEqual(loop_dashboard.branch_name("feature/plain"), "feature/plain")
+        self.assertEqual(loop_dashboard.branch_name("\u2014"), "\u2014")
+
     def test_http_surface_allows_only_get_and_head(self) -> None:
         server = HTTPServer(("127.0.0.1", 0), loop_dashboard.Handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

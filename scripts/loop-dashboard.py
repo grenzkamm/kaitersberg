@@ -38,6 +38,14 @@ def sh(*args, cwd=None):
         return ""
 
 
+def branch_name(cell):
+    """The bare branch out of the board's branch cell. /build decorates the cell -
+    "`feature/x` in `.worktrees/x`" - but every consumer matches it against
+    `git worktree list`, which prints the name alone."""
+    m = re.search(r"`([^`]+)`", cell)
+    return (m.group(1) if m else cell).strip()
+
+
 def board():
     """Rows of features/INDEX.md, as dicts. Column names differ per language, so
     the status is found by value and owner/branch are taken from the last two."""
@@ -64,7 +72,7 @@ def board():
             "wave": next((c for c in rest if re.fullmatch(r"\d{1,2}", c)), ""),
             "deps": next((c for c in rest if re.fullmatch(r"[A-Z]+-\d+(,\s*[A-Z]+-\d+)*", c)), ""),
             "owner": cells[-2] if len(cells) > 2 else "",
-            "branch": cells[-1] if len(cells) > 1 else "",
+            "branch": branch_name(cells[-1]) if len(cells) > 1 else "",
         })
     return rows
 
