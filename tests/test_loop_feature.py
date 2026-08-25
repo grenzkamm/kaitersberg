@@ -188,7 +188,22 @@ class FeatureLoopTest(unittest.TestCase):
             ],
         )
         self.assertTrue(all("--json" in call["args"] for call in calls))
+        self.assertTrue(all("--ephemeral" in call["args"] for call in calls))
+        self.assertTrue(all("workspace-write" in call["args"] for call in calls))
         self.assertTrue(all("--output-schema" in call["args"] for call in calls))
+        self.assertTrue(all("--output-last-message" in call["args"] for call in calls))
+
+    def test_parent_codex_session_selects_codex_runner_automatically(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready"],
+            KAITERSBERG_HARNESS="auto",
+            CODEX_SESSION_ID="parent-codex-session",
+            PR="0",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.codex_calls.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(self.calls.read_text(encoding="utf-8"), "")
 
     def test_build_skill_redirects_whole_delivery_to_the_runner(self) -> None:
         instructions = BUILD_SKILL.read_text(encoding="utf-8")
