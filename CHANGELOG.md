@@ -5,6 +5,16 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
+No changes yet.
+
+## 0.5.0 - 2026-08-25
+
+**First public test release.** Kaitersberg ships the complete specification-first
+product and feature pipeline for Claude Code plus a generated, continuously checked
+Codex port. The Claude Code path has built demo SaaS products end to end; the Codex
+journey is available for testing and feedback but has not yet been exercised end to
+end.
+
 **The feature loop resumes instead of replaying finished work.** A typed state file
 below Git's common directory records Build, Review, QA and PR outcomes, HEAD and
 retry budgets; one atomic lock prevents duplicate loops. Review corrections, QA
@@ -31,8 +41,6 @@ uses a fixed query helper instead of `Bash(git *)`, which also admitted checkout
 clean, apply and shell aliases. Gate output now uses unique temporary raw logs and
 committed bounded extracts tied to the tested code SHA, so one suite cannot erase
 another's evidence or leave an unexplained dirty worktree.
-
-## 0.5.0
 
 **The board tells the truth while work is running.** The claim, `In Review` and both
 push-backs were committed inside the feature worktree, so they reached the default
