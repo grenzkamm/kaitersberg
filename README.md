@@ -68,6 +68,23 @@ a focused pull request when the change is ready. A fork does not owe the upstrea
 project compatibility, but generally useful fixes and new evidence are very welcome
 back here.
 
+## Privacy and legal scope
+
+Kaitersberg helps teams identify personal data, retention questions, access
+boundaries and security risks. Its recommendations are planning inputs, not legal
+advice, and using the framework does not make a product automatically GDPR
+compliant.
+
+Before production use, the organisation operating the product remains responsible
+for assessing and documenting the requirements that apply to its processing
+activities. Depending on the product, the data and the parties involved, these may
+include privacy notices, records of processing activities, data processing
+agreements, retention and deletion procedures, processes for data subject requests,
+technical and organisational security measures, international data transfer
+safeguards and a data protection impact assessment. The applicable duties follow
+from the specific context; consult a qualified data protection professional where
+appropriate. See the official [General Data Protection Regulation](https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng).
+
 ---
 
 ## Every step, in order

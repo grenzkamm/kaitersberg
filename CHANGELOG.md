@@ -5,7 +5,10 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
-No changes yet.
+**The privacy boundary is explicit.** Kaitersberg can surface personal data,
+retention, access and security questions, but its recommendations are not legal
+advice and do not make a product GDPR compliant. The README now names the
+product-specific legal and operational work that remains before production use.
 
 ## 0.5.0 - 2026-08-25
 
