@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 LOOP = ROOT / "scripts" / "loop-feature.sh"
+BUILD_SKILL = ROOT / ".claude" / "skills" / "build" / "SKILL.md"
 
 
 FAKE_CLAUDE = r'''#!/usr/bin/env python3
@@ -188,6 +189,11 @@ class FeatureLoopTest(unittest.TestCase):
         )
         self.assertTrue(all("--json" in call["args"] for call in calls))
         self.assertTrue(all("--output-schema" in call["args"] for call in calls))
+
+    def test_build_skill_redirects_whole_delivery_to_the_runner(self) -> None:
+        instructions = BUILD_SKILL.read_text(encoding="utf-8")
+        self.assertIn("scripts/loop-feature.sh", instructions)
+        self.assertIn("Never synthesise the delivery loop inside this session", instructions)
 
     def test_changes_required_returns_to_build(self) -> None:
         result = self.run_loop(
