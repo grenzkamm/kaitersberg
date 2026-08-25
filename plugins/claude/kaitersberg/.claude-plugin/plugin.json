@@ -1,0 +1,16 @@
+{
+  "name": "kaitersberg",
+  "displayName": "Kaitersberg",
+  "version": "0.5.0",
+  "description": "Plan and deliver SaaS products through a specification-first feature pipeline.",
+  "author": {
+    "name": "Kaitersberg maintainers"
+  },
+  "keywords": [
+    "planning",
+    "architecture",
+    "delivery",
+    "quality"
+  ],
+  "skills": "./skills/"
+}

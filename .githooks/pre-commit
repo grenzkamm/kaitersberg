@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#
+# Runs the same checks a person runs before pushing, so "green" means one thing.
+# Skip a single commit with `git commit --no-verify` when you know why.
+#
+exec scripts/check.sh --staged

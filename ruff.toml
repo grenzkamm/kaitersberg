@@ -1,0 +1,8 @@
+# Ruff 0.16 expanded its implicit default from a small correctness set to hundreds
+# of rules. Kaitersberg names its gate explicitly so a tool upgrade cannot rewrite
+# the project's policy. Broader rule families are adopted deliberately, with their
+# findings fixed in the same change.
+target-version = "py311"
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

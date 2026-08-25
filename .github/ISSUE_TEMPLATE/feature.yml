@@ -1,0 +1,52 @@
+name: Feature request
+description: Propose a change to Kaitersberg itself.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Kaitersberg keeps product code and product plans in their own repositories. This form is for the framework, its skills, ports, plugins, marketplaces and tooling.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What cannot be done safely or clearly today? Describe the need before the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Concrete example
+      description: Show where the current pipeline stops, guesses or creates unnecessary work.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Explain the smallest change you think solves the problem.
+
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Pipeline impact
+      description: Which skills, lifecycle rungs, generated trees, harnesses or documented invariants would this affect?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and the README's considered ideas.
+          required: true
+        - label: This request belongs to Kaitersberg rather than a product repository.
+          required: true

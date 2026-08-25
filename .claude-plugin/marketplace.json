@@ -1,0 +1,14 @@
+{
+  "name": "kaitersberg",
+  "owner": {
+    "name": "Kaitersberg maintainers"
+  },
+  "description": "Specification-first workflows for planning and delivering SaaS products.",
+  "plugins": [
+    {
+      "name": "kaitersberg",
+      "source": "./plugins/claude/kaitersberg",
+      "description": "Plan, architect, build, review, test, and ship features through one documented pipeline."
+    }
+  ]
+}

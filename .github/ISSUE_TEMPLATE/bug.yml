@@ -1,0 +1,85 @@
+name: Bug report
+description: Report reproducible incorrect behaviour in a skill, script or package.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Kaitersberg. Do not report security vulnerabilities here; use the private security link in the issue chooser.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Claude Code skill
+        - Codex skill port
+        - Plugin or marketplace
+        - Unattended feature loop
+        - Dashboard or status
+        - Documentation
+        - Repository tooling
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the observed behaviour and why it is incorrect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Give the smallest sequence that reproduces the problem. Remove secrets and private product data.
+      placeholder: |
+        1. Install version …
+        2. Run …
+        3. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Kaitersberg version or commit
+      placeholder: 0.5.0 or abc1234
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Harness and version, operating system, and relevant workspace environment such as Orca or Buzz.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant evidence
+      description: Add bounded logs or screenshots. Remove tokens, paths containing personal information and private product artefacts.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: This report contains no secrets or private product data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

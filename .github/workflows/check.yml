@@ -1,0 +1,33 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install checks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes jq shellcheck
+          python -m pip install --disable-pip-version-check ruff==0.16.1
+
+      - name: Run repository gate
+        run: scripts/check.sh

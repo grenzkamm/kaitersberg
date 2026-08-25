@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# The message rules this repository actually follows, and nothing borrowed on top:
+# a type prefix, no full stop at the end, and a blank line before the body.
+#
+set -uo pipefail
+subject=$(head -1 "$1")
+problems=()
+
+[[ $subject =~ ^(feat|fix|docs|chore|refactor|test|revert)(\(.+\))?:\ .+ ]] ||
+  problems+=("start with a type: feat, fix, docs, chore, refactor, test or revert")
+[[ $subject != *. ]] || problems+=("no full stop at the end of the subject")
+[[ ! $subject =~ ^(WIP|wip|fixup!|squash!) ]] || problems+=("finish the commit before recording it")
+[[ -z $(sed -n '2p' "$1") ]] || problems+=("leave a blank line between subject and body")
+
+if ((${#problems[@]})); then
+  printf '\033[31mcommit message:\033[0m\n' >&2
+  printf '  - %s\n' "${problems[@]}" >&2
+  printf '\ngot: %s\n' "$subject" >&2
+  exit 1
+fi
+
+# Long subjects are the house style here, not an error - but say so once.
+((${#subject} <= 100)) || printf 'note: subject is %d characters; the first 72 are what most tools show\n' "${#subject}"

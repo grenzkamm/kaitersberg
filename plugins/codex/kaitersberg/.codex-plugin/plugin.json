@@ -1,0 +1,31 @@
+{
+  "name": "kaitersberg",
+  "version": "0.5.0",
+  "description": "Plan and deliver SaaS products through a specification-first feature pipeline.",
+  "author": {
+    "name": "Kaitersberg maintainers"
+  },
+  "keywords": [
+    "planning",
+    "architecture",
+    "delivery",
+    "quality"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Kaitersberg",
+    "shortDescription": "Specification-first SaaS delivery workflows.",
+    "longDescription": "Plan a SaaS product, decide its architecture, and move each feature through specification, design, implementation, review, QA, and pull request workflows.",
+    "developerName": "Kaitersberg maintainers",
+    "category": "Productivity",
+    "capabilities": [
+      "Planning",
+      "Development",
+      "Review"
+    ],
+    "defaultPrompt": [
+      "Plan a product with the Kaitersberg.",
+      "Show the current feature pipeline status."
+    ]
+  }
+}
