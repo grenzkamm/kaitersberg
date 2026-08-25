@@ -32,6 +32,37 @@ print(json.dumps({
 }))
 '''
 
+FAKE_CODEX = r'''#!/usr/bin/env python3
+import json
+import os
+import sys
+from pathlib import Path
+
+queue = Path(os.environ["FAKE_CODEX_QUEUE"])
+items = queue.read_text(encoding="utf-8").splitlines()
+outcome = items.pop(0) if items else ""
+queue.write_text("\n".join(items) + ("\n" if items else ""), encoding="utf-8")
+args = sys.argv[1:]
+prompt = args[-1] if args else ""
+structured = {"outcome": outcome, "head_sha": "abc1234"} if outcome else None
+calls = Path(os.environ["FAKE_CODEX_CALLS"])
+with calls.open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps({"args": args, "prompt": prompt, "outcome": outcome}) + "\n")
+if structured and "--output-last-message" in args:
+    output = Path(args[args.index("--output-last-message") + 1])
+    output.write_text(json.dumps(structured), encoding="utf-8")
+print(json.dumps({"type": "thread.started", "thread_id": f"thread-{outcome}"}))
+if structured:
+    print(json.dumps({
+        "type": "item.completed",
+        "item": {"id": "item-1", "type": "agent_message", "text": json.dumps(structured)},
+    }))
+print(json.dumps({
+    "type": "turn.completed",
+    "usage": {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1},
+}))
+'''
+
 FAKE_HOOK = r'''#!/usr/bin/env python3
 import json
 import os
@@ -73,9 +104,14 @@ class FeatureLoopTest(unittest.TestCase):
         fake = self.bin / "claude"
         fake.write_text(FAKE_CLAUDE, encoding="utf-8")
         fake.chmod(0o755)
+        fake_codex = self.bin / "codex"
+        fake_codex.write_text(FAKE_CODEX, encoding="utf-8")
+        fake_codex.chmod(0o755)
         self.queue = self.root / "queue"
         self.calls = self.root / "calls"
         self.calls.write_text("", encoding="utf-8")
+        self.codex_calls = self.root / "codex-calls"
+        self.codex_calls.write_text("", encoding="utf-8")
         self.hook_log = self.root / "hook-log"
         self.hook_log.write_text("", encoding="utf-8")
         self.hook = self.bin / "hook"
@@ -92,9 +128,12 @@ class FeatureLoopTest(unittest.TestCase):
             PATH=f"{self.bin}:{env['PATH']}",
             FAKE_CLAUDE_QUEUE=str(self.queue),
             FAKE_CLAUDE_CALLS=str(self.calls),
+            FAKE_CODEX_QUEUE=str(self.queue),
+            FAKE_CODEX_CALLS=str(self.codex_calls),
             INFRA_RETRIES="0",
-            **extra,
+            KAITERSBERG_HARNESS="claude",
         )
+        env.update(extra)
         return subprocess.run(
             ["bash", str(LOOP), "PROJ-7"],
             cwd=self.repo,
@@ -124,6 +163,31 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.state()["stage"], "complete")
         self.assertEqual(len(self.calls.read_text(encoding="utf-8").splitlines()), 4)
+
+    def test_codex_runner_drives_each_stage_with_codex_exec(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready", "opened"],
+            KAITERSBERG_HARNESS="codex",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = [
+            json.loads(line)
+            for line in self.codex_calls.read_text(encoding="utf-8").splitlines()
+        ]
+        self.assertEqual([call["outcome"] for call in calls], [
+            "complete", "approved", "production_ready", "opened"
+        ])
+        self.assertEqual(
+            [call["prompt"].split()[0] for call in calls],
+            [
+                "$kaitersberg:build",
+                "$kaitersberg:review",
+                "$kaitersberg:qa",
+                "$kaitersberg:pr",
+            ],
+        )
+        self.assertTrue(all("--json" in call["args"] for call in calls))
+        self.assertTrue(all("--output-schema" in call["args"] for call in calls))
 
     def test_changes_required_returns_to_build(self) -> None:
         result = self.run_loop(
