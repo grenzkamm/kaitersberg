@@ -62,6 +62,16 @@ kept structurally in step and checked on every change; its complete product jour
 has not yet been tested end to end. Codex users should expect rough edges and are
 especially invited to report what does not carry across cleanly.
 
+Questions and early feedback belong in [GitHub Discussions](https://github.com/grenzkamm/kaitersberg/discussions):
+use [Q&A](https://github.com/grenzkamm/kaitersberg/discussions/categories/q-a)
+for help with installing or using Kaitersberg,
+[Ideas](https://github.com/grenzkamm/kaitersberg/discussions/categories/ideas) for
+thoughts that are not yet concrete change requests, and
+[Show and tell](https://github.com/grenzkamm/kaitersberg/discussions/categories/show-and-tell)
+for experiences and projects built with it. Use issues for reproducible bugs and
+concrete changes, and the private reporting route in [SECURITY.md](SECURITY.md) for
+vulnerabilities.
+
 Forking, adapting and experimenting with Kaitersberg is explicitly welcome under
 the MIT licence. Improvements are wanted: open an issue for a broad change or send
 a focused pull request when the change is ready. A fork does not owe the upstream
