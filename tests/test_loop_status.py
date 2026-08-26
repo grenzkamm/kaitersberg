@@ -97,6 +97,26 @@ class LoopStatusTest(unittest.TestCase):
         self.assertIn("none", result.stdout)
         self.assertIn("not held", result.stdout)
 
+    def test_global_snapshot_unions_state_and_detached_only_features(self) -> None:
+        self.init_state()
+        state_dir = self.state_path.parent
+        state_launcher = state_dir / "LST-41-20260101T000000Z-1.detached.log"
+        state_launcher.write_text("state-backed launcher\n", encoding="utf-8")
+        state_launcher.with_suffix(".exit").write_text("0\n", encoding="utf-8")
+        for timestamp, code in (("20260101T000000Z-1", 64), ("20260102T000000Z-2", 65)):
+            launcher = state_dir / f"LST-42-{timestamp}.detached.log"
+            launcher.write_text("detached-only launcher\n", encoding="utf-8")
+            launcher.with_suffix(".exit").write_text(f"{code}\n", encoding="utf-8")
+
+        result = self.run_status()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.count("LST-41  stale"), 1)
+        self.assertEqual(
+            result.stdout.count("LST-42  detached launcher exited 65"), 1
+        )
+        self.assertNotIn("LST-42  detached launcher exited 64", result.stdout)
+
     def test_blocked_state_reads_as_decision_needed(self) -> None:
         self.init_state()
         self.state_helper("transition", str(self.state_path), "build", "blocked")

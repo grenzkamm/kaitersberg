@@ -56,6 +56,16 @@ detached_record() { # detached_record <feature> - latest durable launcher result
   printf '  launcher exit  %s\n' "$exit_file"
 }
 
+contains() { # contains <needle> [values...]
+  local needle=$1 value
+  shift
+  for value in "$@"; do
+    [[ $value == "$needle" ]] && return 0
+  done
+  return 1
+}
+
+DETACHED_ONLY=()
 if [[ -n $F ]]; then
   STATES=("$STATE_DIR/$F.json")
   if [[ ! -f ${STATES[0]} ]]; then
@@ -64,7 +74,15 @@ if [[ -n $F ]]; then
   fi
 else
   STATES=("$STATE_DIR"/*.json)
-  ((${#STATES[@]})) \
+  DETACHED_LOGS=("$STATE_DIR"/*.detached.log)
+  for log in "${DETACHED_LOGS[@]}"; do
+    filename=${log##*/}
+    [[ $filename =~ ^([A-Za-z]+-[0-9]+)-.*\.detached\.log$ ]] || continue
+    feature=${BASH_REMATCH[1]}
+    [[ -f $STATE_DIR/$feature.json ]] && continue
+    contains "$feature" "${DETACHED_ONLY[@]}" || DETACHED_ONLY+=("$feature")
+  done
+  ((${#STATES[@]} + ${#DETACHED_ONLY[@]})) \
     || { echo "no loop state below $STATE_DIR - no unattended run has started here"; exit 0; }
 fi
 
@@ -150,6 +168,11 @@ for state_file in "${STATES[@]}"; do
   printf '  last event  %s\n' "$last_event"
   printf '  worktree    %s\n' "$head_line"
   detached_record "$feature" || true
+  echo
+done
+
+for feature in "${DETACHED_ONLY[@]}"; do
+  detached_record "$feature"
   echo
 done
 

@@ -121,6 +121,20 @@ class DetachedLoopTest(unittest.TestCase):
         self.assertIn("detached launcher exited 64", status.stdout)
         self.assertIn(f"launcher log   {capture}", status.stdout)
 
+        global_status = subprocess.run(
+            ["bash", str(STATUS)],
+            cwd=self.repo,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(global_status.returncode, 0, global_status.stderr)
+        self.assertIn("PROJ-7  detached launcher exited 64", global_status.stdout)
+        self.assertIn(f"launcher log   {capture}", global_status.stdout)
+        self.assertNotIn("no unattended run has started here", global_status.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
