@@ -66,9 +66,17 @@ def write_state(path: Path, state: dict[str, Any]) -> None:
         raise
 
 
-def initialise(path: Path, feature: str, run_id: str, stage: str) -> dict[str, Any]:
+def initialise(
+    path: Path, feature: str, run_id: str, stage: str, rounds: int | None = None
+) -> dict[str, Any]:
     if path.exists():
-        return read_state(path)
+        state = read_state(path)
+        # The budget is per invocation; the persisted value is the operative one,
+        # so a resume with a different ROUNDS records what it actually enforces.
+        if rounds is not None and state.get("rounds") != rounds:
+            state.update(rounds=rounds, updated_at=now())
+            write_state(path, state)
+        return state
     if stage not in OUTCOMES:
         raise SystemExit(f"invalid initial stage: {stage}")
     state = dict(INITIAL)
@@ -77,6 +85,7 @@ def initialise(path: Path, feature: str, run_id: str, stage: str) -> dict[str, A
         feature=feature,
         run_id=run_id,
         stage=stage,
+        rounds=rounds,
         created_at=now(),
         updated_at=now(),
     )
@@ -152,6 +161,7 @@ def parser() -> argparse.ArgumentParser:
     init.add_argument("feature")
     init.add_argument("run_id")
     init.add_argument("--stage", choices=sorted(OUTCOMES), default="build")
+    init.add_argument("--rounds", type=int)
 
     show = commands.add_parser("show")
     show.add_argument("path", type=Path)
@@ -168,7 +178,9 @@ def parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = parser().parse_args()
     if args.command == "init":
-        value: Any = initialise(args.path, args.feature, args.run_id, args.stage)
+        value: Any = initialise(
+            args.path, args.feature, args.run_id, args.stage, args.rounds
+        )
     elif args.command == "show":
         state = read_state(args.path)
         value = state.get(args.field) if args.field else state

@@ -22,6 +22,8 @@ scripts/lint-skills.py            the rules above, enforced instead of remembere
 ruff.toml                         the explicit Python lint contract
 .githooks/                        pre-commit and commit-msg, enabled with core.hooksPath
 scripts/loop-feature.sh          drives one feature through build/review/qa headless
+scripts/loop-status.sh           read-only status view over the persisted loop state
+scripts/notify-ntfy.sh           example LOOP_NOTIFY notifier; optional, never a default
 scripts/review-git.py            fixed read-only Git queries for headless review
 scripts/buzz-doctor.py           diagnoses the local loop-to-Buzz path; read-only
                                  except for its explicit webhook probe
