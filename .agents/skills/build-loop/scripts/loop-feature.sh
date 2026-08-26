@@ -238,7 +238,29 @@ WRITE=(--permission-mode acceptEdits --allowedTools "Bash,Read,Edit,Write,Glob,G
 # apply and shell aliases all fit Bash(git *). The helper exposes fixed query shapes,
 # disables external diff commands and receives no arbitrary git options. Review's
 # parallel lanes get Agent and inherit the same limits.
-READ=(--permission-mode dontAsk --allowedTools "Read,Glob,Grep,Bash($REVIEW_GIT_HELPER *),Bash(mkdir -p $D/evidence/report-history),Agent,Edit($D/review.md),Write($D/evidence/report-history/*.md)")
+#
+# The report lives in the feature worktree (the review skill's own rule), which
+# only exists once build has claimed the feature - so the allowlist is built per
+# stage start, not here, and names the report in both the worktree and this
+# checkout, for Write as well as Edit: round one has no review.md to edit yet.
+feature_worktree_dir() { # absolute worktree of the feature branch, or nothing
+  git worktree list --porcelain 2>/dev/null | awk -v b="refs/heads/feature/$F" '
+    index($0, "worktree ") == 1 { w = substr($0, 10) }
+    index($0, "branch ") == 1 {
+      ref = substr($0, 8)
+      if (ref == b || index(ref, b "-") == 1) { print w; exit }
+    }'
+}
+read_flags() {
+  local allowed="Read,Glob,Grep,Bash($REVIEW_GIT_HELPER *),Agent" wt dir
+  wt=$(feature_worktree_dir)
+  for dir in "$D" ${wt:+"$wt/$D"}; do
+    allowed+=",Edit($dir/review.md),Write($dir/review.md)"
+    allowed+=",Write($dir/evidence/report-history/*.md)"
+    allowed+=",Bash(mkdir -p $dir/evidence/report-history)"
+  done
+  READ=(--permission-mode dontAsk --allowedTools "$allowed")
+}
 
 claude_run() {
   # Claude reports rejected capacity in-band and may then leave the process alive.
@@ -542,6 +564,7 @@ while :; do
   NOTE=""
   FLAGS=("${WRITE[@]}")
   if [[ $CURRENT_STAGE == review ]]; then
+    read_flags
     FLAGS=("${READ[@]}")
     NOTE="Raw git and general shell commands are unavailable in this unattended
 review. Use $REVIEW_GIT_HELPER --help and its fixed read-only queries for status,
