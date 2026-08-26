@@ -289,14 +289,17 @@ $kaitersberg:build-loop PROJ-x follow
 
 The default stays attached and applies the exit table only after the runner itself
 ends. `detached` starts the runner under a deterministic tmux session and returns
-immediately; that successful start means **accepted, not delivered**. Its handoff
-names the session, state file, event log, snapshot command and follow command.
+immediately; that successful start means **accepted; current state unknown**, not
+delivered or even initialised. Its handoff names the session, state file, event
+log, durable launcher log and exit-code file, snapshot command and follow command.
+If the runner fails before creating state or events, its complete error and exit
+code therefore survive the disappearing tmux pane.
 `status` prints a read-only snapshot and `follow` streams loop events without
 joining or changing the run. Ask the skill to set `ROUNDS=3`, to use a specific
 harness or to set `PR=0` when needed. It passes those explicit controls to the
 runner and otherwise keeps the runner defaults.
 
-The runner and its state, review and status helpers live in
+The runner and its detached, state, review and status helpers live in
 `skills/build-loop/scripts/` inside the
 installed plugin. Claude resolves that directory with `${CLAUDE_PLUGIN_ROOT}`;
 Codex starts from the exact `SKILL.md` path in its skill catalog and resolves the
@@ -344,9 +347,11 @@ Two build-loop modes watch a run without joining it: `PROJ-x status` and
 block per feature - stage, round against the recorded `ROUNDS` budget, whether a
 loop process is alive, the lock, the last event and the feature worktree's latest
 commit - and it tells running, stopped on a decision, rounds exhausted, finished
-and stale (no process, state not terminal) apart. `--follow` then tails the loops'
-event streams. It takes no lock and writes nothing, so it is always safe next to a
-live loop. `LOOP_NOTIFY=<executable>` makes the loop announce itself:
+and stale (no process, state not terminal) apart. Before state exists it also shows
+whether the detached launcher is still unknown or already exited, with the durable
+log and exit-code paths. `--follow` then tails the loops' event streams. It takes
+no lock and writes nothing, so it is always safe next to a live loop.
+`LOOP_NOTIFY=<executable>` makes the loop announce itself:
 the command runs as `<notifier> <feature> <event> <detail>` for `stage_started`
 and `stage_done` (with `build round 1/3`), `decision_needed` (with the reason the
 plan is silent), `rounds_exhausted` (with the stage that never went green) and
@@ -361,18 +366,17 @@ that terminal, or end the agent session that started it for you, and the stage i
 flight dies with its work uncommitted in the worktree. Use build-loop's `detached`
 mode if it has to outlive the window. The skill supplies the installed runner path
 without recording it in the product repository and reports the exact tmux attach,
-status and follow commands. In a Kaitersberg source checkout, the compatibility
-entry point remains:
+status and follow commands. In a Kaitersberg source checkout, the same durable
+launcher is available through its compatibility entry point:
 
 ```bash
-tmux new -d -s PROJ-x 'KAITERSBERG_HARNESS=codex ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x'
-tmux attach -t PROJ-x     # look; ctrl-b d to let go again
+KAITERSBERG_HARNESS=codex ROUNDS=3 <framework>/scripts/loop-detach.sh PROJ-x
 ```
 
-`tmux new -d` runs the command directly. A wrapper that types it into an
-interactive login shell instead is a worse start for an unattended run: anything
-that asks a question at startup - an update prompt, a version manager - holds the
-command until somebody answers, and the run looks started when it is not.
+The launcher passes the runner controls directly to tmux, not through an
+interactive login shell. It redirects the complete child output before tmux starts
+the pane and atomically records its final exit code, so even a missing harness or
+another immediate initialisation failure has a durable result.
 
 Whatever holds the run, keep it out of the feature worktree: that is where
 `/build` writes, and a second agent sitting in it is the collision worktrees exist
@@ -561,7 +565,7 @@ knows exactly what it has to replace:
 | Claude Code specific | What it is | What a port needs |
 |---|---|---|
 | `.claude/skills/<name>/SKILL.md` | Where a skill lives and is discovered | The equivalent location for that harness |
-| `${CLAUDE_PLUGIN_ROOT}` in `/build-loop` | The install root for its bundled runtime | Resolve `loop-feature.sh` and `loop-status.sh` relative to the exact loaded `SKILL.md` path |
+| `${CLAUDE_PLUGIN_ROOT}` in `/build-loop` | The install root for its bundled runtime | Resolve `loop-feature.sh`, `loop-detach.sh` and `loop-status.sh` relative to the exact loaded `SKILL.md` path |
 | Frontmatter `user-invocable`, `allowed-tools`, `model`, `argument-hint`, `disable-model-invocation` | How the harness registers and constrains a skill - the last one keeps `/scaffold` from being called by a model that thought some configuration would help | The equivalent fields, or nothing |
 | `/skill-name` invocation | How a user starts one | The harness's own invocation |
 | `CLAUDE.md` | The file every Claude session reads first | The harness's context file - `AGENTS.md` for Codex. Generated templates use an explicit plain-path reading list, because Claude's `@path` imports are silent no-ops in Codex |
@@ -753,6 +757,8 @@ scripts/port-to-codex.py          What generates it, and the only place the
 scripts/update-installed-plugins.sh Refresh both cached local plugin installs
 scripts/loop-feature.sh           Compatibility entry point for the runner bundled
                                   in .claude/skills/build-loop/scripts/
+scripts/loop-detach.sh            Compatibility entry point for durable detached
+                                  supervision and early-failure evidence
 scripts/loop-status.sh            Compatibility entry point for build-loop's
                                   bundled read-only status and event stream
 scripts/notify-ntfy.sh            Example LOOP_NOTIFY notifier posting to an ntfy

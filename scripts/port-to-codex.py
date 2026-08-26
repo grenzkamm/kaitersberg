@@ -59,10 +59,13 @@ PROSE = [
     (
         "Set `LOOP` to\n"
         "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh\"` and `STATUS`\n"
-        "  to `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-status.sh\"`.",
+        "  to `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-status.sh\"`, and set\n"
+        "  `DETACH` to\n"
+        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-detach.sh\"`.",
         "Resolve the exact directory containing this loaded `SKILL.md` from Codex's\n"
         "  skill catalog. Set `LOOP` to its `scripts/loop-feature.sh` and `STATUS` to\n"
-        "  its `scripts/loop-status.sh`.",
+        "  its `scripts/loop-status.sh`, and set `DETACH` to its\n"
+        "  `scripts/loop-detach.sh`.",
     ),
     ("CLAUDE.md", "AGENTS.md"),
     (".claude/skills/", ".agents/skills/"),

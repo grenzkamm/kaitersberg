@@ -10,8 +10,9 @@ changed, and why it was wrong before.
 inside the installed plugin, so product repositories no longer need to know a
 Kaitersberg checkout or plugin-cache path. The old top-level script paths remain
 compatibility entry points for framework contributors. Detached starts now return
-their tmux session and observation paths without claiming delivery completed, and
-the read-only status helper ships in the same runtime bundle.
+their tmux session and durable launcher output/exit paths without claiming delivery
+completed, including when the runner fails before creating state or events. The
+read-only status helper ships in the same runtime bundle and exposes that failure.
 
 **Delivery feedback is cheaper and keeps its evidence.** Batch tasks now carry
 targeted gates while the complete gate runs once at integration. Specifications

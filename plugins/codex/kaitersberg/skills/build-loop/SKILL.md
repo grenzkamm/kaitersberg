@@ -15,8 +15,9 @@ process for every stage. You do not perform any of those stages yourself.
 ## Hard rules
 - **Use the runtime shipped with this skill.** Resolve the exact directory containing this loaded `SKILL.md` from Codex's
   skill catalog. Set `LOOP` to its `scripts/loop-feature.sh` and `STATUS` to
-  its `scripts/loop-status.sh`.
-  The product repository contains neither script, and a plugin cache or framework
+  its `scripts/loop-status.sh`, and set `DETACH` to its
+  `scripts/loop-detach.sh`. The product
+  repository contains none of these scripts, and a plugin cache or framework
   checkout path must never be guessed.
 - **Run from the product repository's default checkout, never from a feature
   worktree or the Kaitersberg framework repository.** The runner creates and
@@ -50,9 +51,9 @@ process for every stage. You do not perform any of those stages yourself.
   exact problem and stop.
 - The product default checkout cannot be identified uniquely -> show the
   candidate worktrees and stop.
-- Either bundled script does not exist or is not executable -> report both
-  resolved paths and stop; do not search caches or the product repository for
-  another copy.
+- Any bundled runtime script does not exist or is not executable -> report all
+  three resolved paths and stop; do not search caches or the product repository
+  for another copy.
 - Detached mode without `tmux`, or with an existing `kaitersberg-PROJ-x` session
   -> report the condition and stop. Never replace or join an existing session as
   if a new run had started.
@@ -72,8 +73,8 @@ only the product context file's *Unattended runs* section and the matching featu
 row to surface repository-specific controls; the runner and stage skills read the
 rest when they need it.
 
-Set `LOOP` and `STATUS` exactly as required in the first hard rule and verify both
-are executable. Resolve the absolute state path as
+Set `LOOP`, `STATUS` and `DETACH` exactly as required in the first hard rule and
+verify all three are executable. Resolve the absolute state path as
 `<git-common-dir>/kaitersberg/loops/PROJ-x.json` and the absolute event-log path as
 `<default-checkout>/<feature-folder>/loop.log`. The state or log may not exist yet
 before a detached child finishes initialising; their paths are still deterministic.
@@ -94,11 +95,15 @@ runner process itself to end:
 "$LOOP" PROJ-x
 ```
 
-For `detached`, require a free session named `kaitersberg-PROJ-x`. Start
-`tmux new-session -d` in the default checkout with the runner command, feature ID
-and every explicit environment override shell-escaped as separate values. Do not
-type the command through an interactive login shell and do not wait for the tmux
-child to finish.
+For `detached`, run the bundled launcher from the default checkout:
+
+```bash
+"$DETACH" PROJ-x
+```
+
+It owns the deterministic tmux session, passes the explicit runner environment and
+captures the child's complete output and final exit code below Git's common
+directory. Do not recreate its tmux command in this skill.
 
 ## Phase 2 - Report the handoff
 
@@ -117,22 +122,24 @@ summary plus the state and event-log paths printed by the runner. Do not call a
 stopped or rate-limited run complete.
 
 For a detached run, use a separate **Detached handoff**. Do not apply the runner
-exit table. State explicitly that delivery is still running or initialising, then
-report:
+exit table. Report exactly `accepted; current state unknown` until the status
+helper shows either persisted runner state or a durable launcher exit. Then report:
 
 - the `kaitersberg-PROJ-x` tmux session name;
 - the absolute state and event-log paths resolved in Phase 0;
-- `tmux attach-session -t '=kaitersberg-PROJ-x'` to watch the raw session;
+- the launcher log and exit-code paths printed by `DETACH`, which remain after an
+  immediately failed pane disappears;
+- `tmux attach-session -t '=kaitersberg-PROJ-x'` while the session still exists;
 - `"$STATUS" PROJ-x` for a snapshot; and
 - `"$STATUS" PROJ-x --follow` for the event stream.
 
 ## Checklist
-- [ ] Bundled runner and status helper resolved without a product or cache path guess
+- [ ] Bundled runner, detached launcher and status helper resolved without a path guess
 - [ ] Command started from the product default checkout
 - [ ] Exactly one explicit feature ID selected
 - [ ] User/product environment overrides preserved, none invented
 - [ ] Fresh-process stage isolation left to the runner
 - [ ] Attached runner exit interpreted only after that process ended
 - [ ] Detached start reported as accepted, never as completed
-- [ ] Session, state, event-log and installed status commands reported when detached
+- [ ] Session, state, event-log, launcher log and exit-code paths reported when detached
 - [ ] `$merge` not started

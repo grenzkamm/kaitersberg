@@ -39,9 +39,29 @@ STATE_DIR=$GIT_COMMON/kaitersberg/loops
 ROOT=$(dirname "$GIT_COMMON")
 
 shopt -s nullglob
+
+detached_record() { # detached_record <feature> - latest durable launcher result
+  local feature=$1 log exit_file code
+  local logs=("$STATE_DIR/$feature"-*.detached.log)
+  ((${#logs[@]})) || return 1
+  log=${logs[$((${#logs[@]} - 1))]}
+  exit_file=${log%.detached.log}.detached.exit
+  if [[ -f $exit_file ]]; then
+    IFS= read -r code < "$exit_file" || code="unreadable"
+    printf '%s  detached launcher exited %s\n' "$feature" "$code"
+  else
+    printf '%s  detached launcher accepted; current state unknown\n' "$feature"
+  fi
+  printf '  launcher log   %s\n' "$log"
+  printf '  launcher exit  %s\n' "$exit_file"
+}
+
 if [[ -n $F ]]; then
   STATES=("$STATE_DIR/$F.json")
-  [[ -f ${STATES[0]} ]] || { echo "no loop state for $F below $STATE_DIR"; exit 0; }
+  if [[ ! -f ${STATES[0]} ]]; then
+    detached_record "$F" || echo "no loop state for $F below $STATE_DIR"
+    exit 0
+  fi
 else
   STATES=("$STATE_DIR"/*.json)
   ((${#STATES[@]})) \
@@ -129,6 +149,7 @@ for state_file in "${STATES[@]}"; do
   printf '  lock        %s\n' "$lock"
   printf '  last event  %s\n' "$last_event"
   printf '  worktree    %s\n' "$head_line"
+  detached_record "$feature" || true
   echo
 done
 

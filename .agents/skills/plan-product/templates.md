@@ -441,10 +441,11 @@ persisted stage, and name the explicit state-reset and manual import-stage contr
 supplied by the framework.
 
 Name its `detached`, `status` and `follow` modes. A detached handoff reports the
-tmux session plus the state and event-log paths; tmux accepting the session is not
-a completed delivery. A run takes hours, and an agent that starts it attached to a
-chat session takes it down again when that session ends, with the stage in flight
-uncommitted in the worktree.>
+tmux session plus the state, event-log, durable launcher-log and exit-code paths;
+tmux accepting the session leaves current state unknown and is not a completed
+delivery. A run takes hours, and an agent that starts it attached to a chat session
+takes it down again when that session ends, with the stage in flight uncommitted in
+the worktree.>
 
 ## Rules
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is

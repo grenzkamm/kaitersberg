@@ -76,6 +76,7 @@ class SkillContractTest(unittest.TestCase):
             ROOT / ".agents" / "skills" / "build-loop" / "SKILL.md"
         ).read_text(encoding="utf-8")
         relative_scripts = (
+            "scripts/loop-detach.sh",
             "scripts/loop-feature.sh",
             "scripts/loop-status.sh",
             "scripts/loop-state.py",
@@ -105,6 +106,8 @@ class SkillContractTest(unittest.TestCase):
 
         self.assertIn("means only that tmux accepted the session", skill)
         self.assertIn("Do not apply the runner\nexit table", skill)
+        self.assertIn("accepted; current state unknown", skill)
+        self.assertIn("launcher log and exit-code paths", skill)
         self.assertIn('`"$STATUS" PROJ-x --follow`', skill)
 
 
