@@ -145,6 +145,7 @@ INFRA_RETRIES=${INFRA_RETRIES:-3}
 STAGE_DONE_CMD=${STAGE_DONE_CMD:-}  # per-stage notification hook, see header
 LOOP_NOTIFY=${LOOP_NOTIFY:-}        # per-event notifier executable, see header
 LOOP_NOTIFY_TIMEOUT=${LOOP_NOTIFY_TIMEOUT:-30}  # seconds per notification
+LOOP_NOTIFY_KILL_GRACE=${LOOP_NOTIFY_KILL_GRACE:-1}  # seconds between TERM and KILL
 
 notify() { # notify <event> <detail> - never load-bearing: a failing, missing or
   # hanging notifier is reported and ignored, so it can never stop the loop.
@@ -152,12 +153,14 @@ notify() { # notify <event> <detail> - never load-bearing: a failing, missing or
   local code=0
   # Python is already required by the persisted-state helper. Use it here too so
   # notifier isolation does not silently disappear on macOS without coreutils.
-  python3 - "$LOOP_NOTIFY_TIMEOUT" "$LOOP_NOTIFY" "$F" "$1" "$2" <<'PY' || code=$?
+  python3 - "$LOOP_NOTIFY_TIMEOUT" "$LOOP_NOTIFY_KILL_GRACE" \
+    "$LOOP_NOTIFY" "$F" "$1" "$2" <<'PY' || code=$?
 import errno
 import os
 import signal
 import subprocess
 import sys
+import time
 
 try:
     seconds = float(sys.argv[1])
@@ -168,7 +171,15 @@ except ValueError:
     raise SystemExit(64)
 
 try:
-    process = subprocess.Popen(sys.argv[2:], start_new_session=True)
+    kill_grace = float(sys.argv[2])
+    if kill_grace <= 0:
+        raise ValueError
+except ValueError:
+    print("LOOP_NOTIFY_KILL_GRACE must be a positive number", file=sys.stderr)
+    raise SystemExit(64)
+
+try:
+    process = subprocess.Popen(sys.argv[3:], start_new_session=True)
 except OSError as error:
     print(error, file=sys.stderr)
     raise SystemExit(127 if error.errno == errno.ENOENT else 126)
@@ -176,12 +187,32 @@ except OSError as error:
 try:
     returncode = process.wait(timeout=seconds)
 except subprocess.TimeoutExpired:
-    os.killpg(process.pid, signal.SIGTERM)
     try:
-        process.wait(timeout=1)
-    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+
+    deadline = time.monotonic() + kill_grace
+    while time.monotonic() < deadline:
+        process.poll()
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            break
+        except PermissionError:
+            pass
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(0.05, remaining))
+
+    try:
         os.killpg(process.pid, signal.SIGKILL)
-        process.wait()
+    except (ProcessLookupError, PermissionError):
+        # Darwin may report EPERM for an orphaned group after delivering the
+        # signal to its remaining member. The inherited pipes still prove below
+        # whether any notifier descendant survived.
+        pass
+    process.wait()
     raise SystemExit(124)
 
 raise SystemExit(returncode if returncode >= 0 else 128 - returncode)

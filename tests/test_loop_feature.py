@@ -423,8 +423,11 @@ class FeatureLoopTest(unittest.TestCase):
         self.notifier.write_text(
             "#!/bin/sh\n"
             "trap 'exit 0' TERM\n"
-            "python3 -c 'import signal, time; "
-            "signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(2)' &\n"
+            "python3 -c 'import os, pathlib, signal, time; "
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+            "pathlib.Path(os.environ[\"NOTIFY_CHILD_READY\"]).write_text(\"ready\"); "
+            "time.sleep(10)' &\n"
+            "while [ ! -e \"$NOTIFY_CHILD_READY\" ]; do :; done\n"
             "wait\n",
             encoding="utf-8",
         )
@@ -432,10 +435,12 @@ class FeatureLoopTest(unittest.TestCase):
 
         result = self.run_loop(
             ["blocked"],
-            timeout=1.5,
+            timeout=3,
             PATH=self.path_without_timeout(),
             LOOP_NOTIFY=str(self.notifier),
             LOOP_NOTIFY_TIMEOUT="0.1",
+            LOOP_NOTIFY_KILL_GRACE="0.05",
+            NOTIFY_CHILD_READY=str(self.root / "notify-child-ready"),
         )
 
         self.assertEqual(result.returncode, 2, result.stderr)
