@@ -73,7 +73,13 @@ if [[ -n $F ]]; then
     exit 0
   fi
 else
-  STATES=("$STATE_DIR"/*.json)
+  # Only feature-shaped names are state files; the same directory legitimately
+  # holds other JSON - backups and other tools' per-attempt snapshots - whose
+  # shape the jq queries below would crash on.
+  STATES=()
+  for state in "$STATE_DIR"/*.json; do
+    [[ ${state##*/} =~ ^[A-Za-z]+-[0-9]+\.json$ ]] && STATES+=("$state")
+  done
   DETACHED_LOGS=("$STATE_DIR"/*.detached.log)
   for log in "${DETACHED_LOGS[@]}"; do
     filename=${log##*/}

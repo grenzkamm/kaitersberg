@@ -361,6 +361,33 @@ vendor; `scripts/notify-ntfy.sh` is a worked example that posts each event to an
 ntfy topic, optional and never a default. A failing, missing or hanging notifier
 is reported and ignored - notification is never load-bearing.
 
+On a Mac both hooks reach the desktop without any service. A `LOOP_NOTIFY`
+notifier of a few lines posts native notifications through `osascript`; the
+arguments travel as `argv`, not interpolated shell text, so a quote in a detail
+cannot break the script:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+case $2 in stage_started|stage_done) exit 0 ;; esac  # only events that need a person
+osascript - "$1" "$2" "$3" <<'EOF'
+on run argv
+  display notification (item 3 of argv) ¬
+    with title ("Kaitersberg " & item 1 of argv) ¬
+    subtitle (item 2 of argv) sound name "Glass"
+end run
+EOF
+```
+
+macOS attributes these notifications to Script Editor, so clicking one opens
+that app; a notifier built on `terminal-notifier` can attach a click action
+instead. And because `loop-status.sh` is read-only, a menu-bar indicator is
+free: a [SwiftBar](https://github.com/swiftbar/SwiftBar) plugin that calls it
+once a minute per product repository, shows the worst verdict as the icon and
+each loop's block as a dropdown, is one shell script - the same idea as
+`watch -n 10 loop-status.sh` in a spare terminal. Both stay readers of what the
+loop persisted, never a second writer.
+
 A run takes hours, and every stage is a child of the shell that started it - close
 that terminal, or end the agent session that started it for you, and the stage in
 flight dies with its work uncommitted in the worktree. Use build-loop's `detached`
