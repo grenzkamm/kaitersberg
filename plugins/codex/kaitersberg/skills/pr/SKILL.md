@@ -19,6 +19,9 @@ honestly, not to write a new account of the work.
 - **Assembled from the artifacts, never from memory.** Every claim in the body
   traces to `spec.md`, `design.md`, `review.md`, `qa.md` or the diff. If the test
   report says a criterion is not automatically testable, the body says that too.
+- **Read only the current review and QA snapshots.** Historical rounds under
+  `evidence/report-history/` are available for audit and delta verification, but
+  are not PR inputs unless the current snapshot links one as evidence.
 - **Never overstate the state.** A body claiming green while a check is red is
   worse than no body: it teaches the next reviewer not to read yours.
 - **Confirm before pushing.** Show the body, name the branch and the target, and
@@ -63,7 +66,8 @@ explicitly in the report; every diff, log and check below is measured against it
 🔀 PR: PROJ-x [name]
 ```
 
-1. `features/INDEX.md`: status `In Review`, owner and branch set.
+1. From `features/INDEX.md`, read only this feature's row: status `In Review`, owner
+   and branch set. Use the pick rule only when eligibility itself is in question.
 2. `review.md` verdict and `qa.md` verdict - both must allow it.
 3. `git status` in the worktree, `git log <base>..HEAD`, and the full diff stat.
 4. Whether a remote and a pull request tool exist at all (`git remote -v`,

@@ -26,10 +26,10 @@ One batch = one round of parallel work. Within a batch the write sets are
 disjoint, so the tasks can be handed to sub-agents at the same time. Do not start
 a batch before the previous gate holds.
 
-| Batch | Tasks | Runs at once | Gate before the next batch |
+| Batch | Tasks | Runs at once | Targeted gate before the next batch |
 |---|---|---|---|
-| B1 | T1 | 1 | Migration applied, application starts |
-| B2 | T3, T4, T5 | 3 | Tests of AC-3…AC-5 green |
+| B1 | T1 | 1 | `<affected commands from the architecture's batch recipe>` - migration applied, application starts |
+| B2 | T3, T4, T5 | 3 | `<affected commands>` - tests of AC-3…AC-5 green |
 
 **Checked disjoint:**
 | Batch | Task | Writes | Overlap with siblings |
@@ -39,6 +39,14 @@ a batch before the previous gate holds.
 
 **Deliberately not parallel:** <which tasks were kept apart and why - schema
 order, one lockfile, the shared shell>
+
+## Integrated feature gate
+
+`<the exact complete command sequence from docs/architecture.md>`
+
+Run once after the target branch is integrated into the finished feature, never in
+a batch row. Every batch row above was compared with this command and does not
+invoke or delegate to it.
 
 ---
 

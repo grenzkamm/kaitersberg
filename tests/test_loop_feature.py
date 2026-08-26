@@ -19,6 +19,7 @@ FAKE_CLAUDE = r'''#!/usr/bin/env python3
 import json
 import os
 from pathlib import Path
+import time
 
 queue = Path(os.environ["FAKE_CLAUDE_QUEUE"])
 items = queue.read_text(encoding="utf-8").splitlines()
@@ -26,6 +27,14 @@ outcome = items.pop(0) if items else ""
 queue.write_text("\n".join(items) + ("\n" if items else ""), encoding="utf-8")
 calls = Path(os.environ["FAKE_CLAUDE_CALLS"])
 calls.write_text(calls.read_text(encoding="utf-8") + outcome + "\n", encoding="utf-8")
+if outcome == "rate_limited":
+    print(json.dumps({
+        "type": "rate_limit_event",
+        "session_id": "session-rate-limited",
+        "rate_limit_info": {"status": "rejected", "resetsAt": 1787756400},
+    }), flush=True)
+    time.sleep(float(os.environ.get("FAKE_RATE_LIMIT_SLEEP", "10")))
+    raise SystemExit(99)
 structured = {"outcome": outcome, "head_sha": "abc1234"} if outcome else None
 if structured and outcome == "blocked":
     structured["reason"] = "which provider owns login"
@@ -297,6 +306,38 @@ class FeatureLoopTest(unittest.TestCase):
             ["complete", "approved", "production_ready", "opened"]
         )
         self.assertEqual(resumed.returncode, 0, resumed.stderr)
+
+    def test_rejected_rate_limit_stops_without_infrastructure_retries(self) -> None:
+        result = self.run_loop(
+            ["rate_limited"],
+            timeout=3,
+            INFRA_RETRIES="3",
+            FAKE_RATE_LIMIT_SLEEP="10",
+            **self.notify_env(),
+        )
+
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertEqual(self.state()["stage"], "build")
+        self.assertEqual(self.state()["attempts"]["build"], 0)
+        self.assertEqual(
+            self.calls.read_text(encoding="utf-8").splitlines(), ["rate_limited"]
+        )
+        self.assertIn("resetsAt=1787756400", result.stderr)
+        self.assertEqual(
+            self.notifications()[-1],
+            ["PROJ-7", "rate_limited", "build rejected; resetsAt=1787756400"],
+        )
+        events = [
+            json.loads(line)
+            for line in (self.repo / "features" / "PROJ-7-example" / "loop.log")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        event = next(
+            item for item in events if item.get("type") == "kaitersberg_rate_limit"
+        )
+        self.assertEqual(event["stage"], "build")
+        self.assertEqual(event["resets_at"], 1787756400)
 
     def test_ci_failure_returns_through_build(self) -> None:
         result = self.run_loop(

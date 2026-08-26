@@ -30,7 +30,8 @@
 # as  <notifier> <feature> <event> <detail>  at its decision points -
 # stage_started and stage_done with "stage round X/Y", decision_needed with the
 # reason the plan is silent, rounds_exhausted with the stage that never went
-# green, and finished with "PR opened" or "stopped before PR (PR=0)". The loop
+# green, rate_limited with Claude's resetsAt, and finished with "PR opened" or
+# "stopped before PR (PR=0)". The loop
 # knows no vendor: scripts/notify-ntfy.sh is a worked example, and wrapping the
 # whole run still works too:
 #   ntfy done -- scripts/loop-feature.sh PROJ-3
@@ -89,11 +90,12 @@ resolve_harness() {
 HARNESS=$(resolve_harness) || exit $?
 command -v "$HARNESS" >/dev/null || { echo "$HARNESS is required" >&2; exit 69; }
 
-# macOS ships no `timeout`; coreutils installs it as `gtimeout`. Without either,
-# run uncapped rather than not at all - --max-turns still bounds a stage that
-# circles, it just takes longer to say so.
+# macOS ships no `timeout`; coreutils installs it as `gtimeout`. Claude stages use
+# the Python supervisor below and remain wall-clock bounded without either command.
+# A Codex stage runs uncapped rather than not at all - its harness still bounds a
+# turn, it just takes longer to say so.
 TIMEOUT_BIN=$(command -v timeout || command -v gtimeout || echo "")
-[[ -n $TIMEOUT_BIN ]] || echo "note: no timeout(1) found, stages run without a wall clock" >&2
+[[ -n $TIMEOUT_BIN ]] || echo "note: no timeout(1) found, Codex stages run without a wall clock" >&2
 
 FEATURE_DIRS=(features/"$F"-*)
 [[ ${#FEATURE_DIRS[@]} == 1 && -d ${FEATURE_DIRS[0]} ]] || {
@@ -230,10 +232,109 @@ WRITE=(--permission-mode acceptEdits --allowedTools "Bash,Read,Edit,Write,Glob,G
 # apply and shell aliases all fit Bash(git *). The helper exposes fixed query shapes,
 # disables external diff commands and receives no arbitrary git options. Review's
 # parallel lanes get Agent and inherit the same limits.
-READ=(--permission-mode dontAsk --allowedTools "Read,Glob,Grep,Bash($REVIEW_GIT_HELPER *),Agent,Edit(features/**/review.md)")
+READ=(--permission-mode dontAsk --allowedTools "Read,Glob,Grep,Bash($REVIEW_GIT_HELPER *),Bash(mkdir -p features/**/evidence/report-history),Agent,Edit(features/**/review.md),Write(features/**/evidence/report-history/*.md)")
 
 claude_run() {
-  if [[ -n $TIMEOUT_BIN ]]; then "$TIMEOUT_BIN" "${STAGE_TIMEOUT:-3h}" claude "$@"; else claude "$@"; fi
+  # Claude reports rejected capacity in-band and may then leave the process alive.
+  # Supervise it as its own process group so that event can stop the whole stage
+  # immediately. Python is already a dependency of the persisted-state helper.
+  python3 - "${STAGE_TIMEOUT:-3h}" "$@" <<'PY'
+import json
+import os
+import re
+import selectors
+import signal
+import subprocess
+import sys
+import time
+
+
+def seconds(value: str) -> float:
+    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([smhd]?)", value)
+    if not match:
+        print(f"invalid STAGE_TIMEOUT={value}", file=sys.stderr)
+        raise SystemExit(64)
+    scale = {"": 1, "s": 1, "m": 60, "h": 3600, "d": 86400}[match.group(2)]
+    return float(match.group(1)) * scale
+
+
+def stop_group(process: subprocess.Popen[bytes]) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=1)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
+
+
+limit = seconds(sys.argv[1])
+process = subprocess.Popen(
+    ["claude", *sys.argv[2:]],
+    stdout=subprocess.PIPE,
+    start_new_session=True,
+)
+
+
+def interrupted(signum: int, _frame: object) -> None:
+    stop_group(process)
+    raise SystemExit(128 + signum)
+
+
+signal.signal(signal.SIGINT, interrupted)
+signal.signal(signal.SIGTERM, interrupted)
+assert process.stdout is not None
+selector = selectors.DefaultSelector()
+selector.register(process.stdout, selectors.EVENT_READ)
+deadline = time.monotonic() + limit
+pending = b""
+rejected = False
+
+while selector.get_map():
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        stop_group(process)
+        print(f"Claude stage exceeded STAGE_TIMEOUT={sys.argv[1]}", file=sys.stderr)
+        raise SystemExit(124)
+    events = selector.select(min(remaining, 0.25))
+    if not events and process.poll() is not None:
+        events = [(selector.get_key(process.stdout), selectors.EVENT_READ)]
+    for key, _ in events:
+        chunk = os.read(key.fileobj.fileno(), 65536)
+        if not chunk:
+            selector.unregister(key.fileobj)
+            continue
+        sys.stdout.buffer.write(chunk)
+        sys.stdout.buffer.flush()
+        pending += chunk
+        lines = pending.split(b"\n")
+        pending = lines.pop()
+        for raw in lines:
+            try:
+                event = json.loads(raw)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                continue
+            info = event.get("rate_limit_info") or {}
+            if event.get("type") == "rate_limit_event" and info.get("status") == "rejected":
+                rejected = True
+                stop_group(process)
+                break
+        if rejected:
+            break
+    if rejected:
+        break
+
+if rejected:
+    raise SystemExit(0)
+raise SystemExit(process.wait())
+PY
 }
 
 codex_run() {
@@ -277,13 +378,16 @@ claude_stage() { # claude_stage <skill> <schema> <prompt> <permission flags...>
   | tee -a "$D/loop.log" \
   | jq -r --unbuffered '
       if .type == "assistant" then (.message.content[]? | select(.type == "tool_use") | "   \(.name)")
+      elif .type == "rate_limit_event" and .rate_limit_info.status == "rejected" then
+        "RATE_LIMIT:\(.rate_limit_info.resetsAt // "")"
       elif .type == "result" then "RESULT:\(.structured_output.outcome //
             (if .subtype == "error_max_turns" then "incomplete" else "" end))\t\(.structured_output.head_sha // "")\t\(.structured_output.reason // "" | gsub("[\t\n\r]"; " "))"
       else empty end' \
   | { last=""
       while IFS= read -r line; do
         case $line in
-          RESULT:*) last=${line#RESULT:} ;;
+          RATE_LIMIT:*) last=$(printf 'RATE_LIMIT\t%s' "${line#RATE_LIMIT:}") ;;
+          RESULT:*) [[ $last == RATE_LIMIT$'\t'* ]] || last=${line#RESULT:} ;;
           *)         printf "%s\n" "$line" >&2 ;;
         esac
       done
@@ -372,7 +476,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-OUTCOME=""; HEAD_SHA=""; REASON=""
+OUTCOME=""; HEAD_SHA=""; REASON=""; RATE_LIMITED=0; RATE_LIMIT_RESET=""
 run() { # run <skill> <flags...> -> sets OUTCOME, HEAD_SHA and REASON
   local skill=$1 attempt=0 value delay
   shift
@@ -381,6 +485,11 @@ run() { # run <skill> <flags...> -> sets OUTCOME, HEAD_SHA and REASON
     '{type:"kaitersberg_stage", stage:$stage, run_id:$run}' >> "$D/loop.log"
   while :; do
     value=$(stage "$skill" "$@") || value=""
+    if [[ $value == RATE_LIMIT$'\t'* ]]; then
+      RATE_LIMITED=1
+      RATE_LIMIT_RESET=${value#*$'\t'}
+      return 0
+    fi
     IFS=$'\t' read -r OUTCOME HEAD_SHA REASON <<<"$value" || true
     if [[ -n $OUTCOME ]]; then
       return 0
@@ -433,6 +542,17 @@ and this branch only. Do not stop to ask for it again. Do not merge.
 
   notify stage_started "$CURRENT_STAGE round $ROUND/$ROUNDS"
   run "$CURRENT_STAGE" "${FLAGS[@]}"
+  if (( RATE_LIMITED )); then
+    RATE_DETAIL="$CURRENT_STAGE rejected; resetsAt=${RATE_LIMIT_RESET:-unknown}"
+    jq -nc --arg run "$RUN_ID" --arg feature "$F" --arg stage "$CURRENT_STAGE" \
+      --arg reset "$RATE_LIMIT_RESET" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{type:"kaitersberg_rate_limit", run_id:$run, feature:$feature, stage:$stage,
+        resets_at:(if $reset == "" then null else (($reset | tonumber?) // $reset) end),
+        at:$at}' >> "$D/loop.log"
+    notify rate_limited "$RATE_DETAIL"
+    echo "$F: $RATE_DETAIL; persisted stage unchanged" >&2
+    exit 3
+  fi
   TRANSITION_ARGS=(transition "$STATE_FILE" "$CURRENT_STAGE" "$OUTCOME")
   if [[ -n $HEAD_SHA ]]; then TRANSITION_ARGS+=(--head-sha "$HEAD_SHA"); fi
   TRANSITION=$(python3 "$STATE_HELPER" "${TRANSITION_ARGS[@]}")

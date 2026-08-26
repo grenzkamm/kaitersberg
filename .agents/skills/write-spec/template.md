@@ -142,6 +142,13 @@ so nothing gets built twice.>
 - **Reflow:** <what must remain usable at the required narrow viewport and at 200%
   zoom, or why this does not apply>
 
+### Forms
+<Delete with a one-line reason when the feature has no form.>
+
+- **Labels and instructions:** <how each remains perceivably associated with its field>
+- **Failed submission:** <entered values preserved; errors announced; focus moves to the first error or an error summary>
+- **Required and invalid:** <how these states remain understandable without colour>
+
 ## Edge cases
 | Case | Behaviour |
 |---|---|

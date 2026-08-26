@@ -128,6 +128,11 @@ behaviour · effect on what exists · AC coverage · to decide · approval.
 
 **When the feature has one:**
 
+- **Concurrent behaviour** - mandatory whenever the feature writes mutable data.
+  Name the actions that can collide, apply the concurrency mechanism already fixed
+  in `docs/architecture.md`, say what a stale or duplicate actor sees, and state
+  what the data looks like afterwards. Do not re-decide the house mechanism here;
+  an exception is a technical decision and must name the rule it departs from.
 - **Migration** - for every feature that changes the shape of stored data. What
   runs, in order; which existing rows get which value and from where; **every
   destructive step named** - a dropped column, a narrowed type, a rewritten value -
@@ -261,6 +266,7 @@ Next after approval: `$tasks PROJ-x`.
 - [ ] Role table has its own admin and ordinary-user columns, every cell filled
 - [ ] Every role difference carries a reason
 - [ ] Flow written as numbered steps a non-developer can follow
+- [ ] Every feature that writes mutable data has explicit concurrent behaviour: collision, house mechanism, actor-visible outcome and resulting data
 - [ ] Effect on existing data answered, including whether it is reversible
 - [ ] Migration described where data changes shape: order, backfill, every destructive step, reversibility against the architecture's rule
 - [ ] House answers applied from `docs/architecture.md` - concurrency, formats, retention, dependency bar - not re-decided here

@@ -67,6 +67,9 @@ Write yourself two lists before cutting anything:
   budget for this feature's path and the volume it must hold.
 
 Both lists must end up consumed by tasks. Nothing from either may quietly vanish.
+Also copy the architecture's **batch gate recipe** and **integrated and CI gate**
+as two separate inputs. A full-gate command that appears in a batch line is a
+scheduling defect this skill must catch, not an instruction `$build` should obey.
 
 ## Phase 2 - Cut the tasks by layer
 
@@ -152,6 +155,12 @@ brought into the finished feature. Re-running every browser project after every
 batch makes batch count the dominant cost without increasing the independence of
 the final proof.
 
+Compare every finished batch-gate cell with the architecture's exact integrated/CI
+commands. If a cell equals, contains or delegates to that complete gate, replace it
+with commands selected from the batch recipe. Then write the complete gate once in
+the separate *Integrated feature gate* section; this mechanical comparison closes
+the drift that prose alone did not.
+
 **Each task must be self-contained enough to hand over.** The sub-agent that picks
 it up has not read the spec, the design, or this conversation. Its *brief* names
 the sections it must read, the ACs it must satisfy, and the tests that must pass.
@@ -216,6 +225,8 @@ Next: `$build PROJ-x`, starting at PROJ-x-T1.
 - [ ] Batches numbered; within each batch the write sets are disjoint, checked list against list
 - [ ] No batch contains two schema changes, two dependency additions, or two edits of one shared file
 - [ ] Every batch has a targeted gate; the full repository gate is reserved for the integrated feature
+- [ ] Every batch gate compared with the architecture's complete command and none invokes it directly or indirectly
+- [ ] Integrated feature gate records the complete architecture command exactly once
 - [ ] Every task's brief names the sections and ACs a sub-agent needs, and nothing else
 - [ ] User approved only task cuts that changed behaviour, exposed a design gap or exceeded the review budget
 - [ ] `features/INDEX.md` set to `Ready`

@@ -10,6 +10,9 @@ write them in the language of the specification.
 ```markdown
 # PROJ-x: <Feature name> - Test report
 
+<!-- kaitersberg-report: qa -->
+<!-- kaitersberg-subject-sha: <tested sha> -->
+
 **Tested:** YYYY-MM-DD   **Branch:** feature/PROJ-x-<name>   **Commit:** <sha>
 **Mode:** Full | Targeted from <previous tested sha>   **Scope reason:** <why this is sufficient>
 **Build evidence:** `verification.json` tested <sha> · HEAD equal | evidence-only descendant

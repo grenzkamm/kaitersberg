@@ -5,6 +5,18 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
+**Delivery feedback is cheaper and keeps its evidence.** Batch tasks now carry
+targeted gates while the complete gate runs once at integration. Specifications
+and designs surface form accessibility, write collisions, product-wide error
+behaviour and permission-guard mutation checks before build. Review and QA keep
+one bounded, SHA-marked current report and archive prior snapshots separately;
+delivery stages read only the relevant board rows.
+
+**Rejected Claude rate limits stop the loop immediately.** A
+`rate_limit_event` with status `rejected` terminates the stage process group,
+records the reset time, notifies the operator and exits without consuming a stage
+attempt or sleeping through infrastructure retries.
+
 **Loop observation is bounded and repository-specific.** A configured notifier
 now has the promised wall-clock limit even on macOS without coreutils, including
 its child processes. The status command identifies a running loop through the
