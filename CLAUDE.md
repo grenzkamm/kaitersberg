@@ -23,7 +23,7 @@ scripts/lint-skills.py            the rules above, enforced instead of remembere
 ruff.toml                         the explicit Python lint contract
 .githooks/                        pre-commit and commit-msg, enabled with core.hooksPath
 scripts/loop-feature.sh          compatibility entry point for the bundled runner
-scripts/loop-status.sh           read-only status view over the persisted loop state
+scripts/loop-status.sh           compatibility entry point for bundled loop status
 scripts/notify-ntfy.sh           example LOOP_NOTIFY notifier; optional, never a default
 scripts/review-git.py            compatibility entry point for the bundled helper
 scripts/buzz-doctor.py           diagnoses the local loop-to-Buzz path; read-only

@@ -1,7 +1,7 @@
 ---
 name: build-loop
-description: Run one planned feature unattended through isolated Build, Review, QA and optionally PR sessions, using the delivery runner bundled with this skill. Use when the user asks for the whole delivery loop rather than one stage.
-argument-hint: "PROJ-x"
+description: Start or inspect one planned feature's unattended Build, Review, QA and optional PR loop using the runtime bundled with this skill. Use for a whole delivery, a detached run, or loop status; not for one delivery stage.
+argument-hint: "PROJ-x [detached|status|follow]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, AskUserQuestion
 model: opus
@@ -10,14 +10,15 @@ model: opus
 # Build loop
 
 ## Role
-You start and supervise the existing Kaitersberg delivery runner for one feature.
-The runner owns the Build -> Review -> QA -> PR state machine and starts a fresh
-harness process for every stage. You do not perform any of those stages yourself.
+You start or inspect the existing Kaitersberg delivery runner for one feature. The
+runner owns the Build -> Review -> QA -> PR state machine and starts a fresh harness
+process for every stage. You do not perform any of those stages yourself.
 
 ## Hard rules
-- **Use the runner shipped with this skill.** Set `LOOP` to
-  `"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh"`. The product
-  repository does not contain this script, and a plugin cache or framework
+- **Use the runtime shipped with this skill.** Set `LOOP` to
+  `"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh"` and `STATUS`
+  to `"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-status.sh"`.
+  The product repository contains neither script, and a plugin cache or framework
   checkout path must never be guessed.
 - **Run from the product repository's default checkout, never from a feature
   worktree or the Kaitersberg framework repository.** The runner creates and
@@ -27,11 +28,17 @@ harness process for every stage. You do not perform any of those stages yourself
   the unique default checkout. Stop when it cannot be identified unambiguously.
 - **One feature ID is required.** Accept only the repository's feature-ID shape,
   normally `PROJ-x`, and require exactly one matching directory below `features/`.
-  Do not silently pick work for a command that can run for hours and open a pull
-  request.
-- **Starting this skill authorises the runner's PR stage for this feature.** Set
-  `PR=0` only when the user asked to stop before the pull request. `/merge` is
-  never part of this loop.
+  The optional mode is exactly one of `detached`, `status` or `follow`; no mode
+  means an attached run. Do not silently pick work for a command that can run for
+  hours and open a pull request.
+- **Starting an attached or detached run authorises the runner's PR stage for this
+  feature.** Set `PR=0` only when the user asked to stop before the pull request.
+  Status and follow modes authorise no delivery action. `/merge` is never part of
+  this loop.
+- **A detached start is not a completed delivery.** A successful
+  `tmux new-session -d` means only that tmux accepted the session. Report the
+  detached handoff and stop; never interpret that exit code with the runner's exit
+  table.
 - **Preserve stage isolation.** Invoke the runner once; never replace it with
   child agents or a handwritten sequence of `/build`, `/review`, `/qa` and `/pr`.
 - **Do not invent environment overrides.** Preserve explicit settings such as
@@ -45,14 +52,18 @@ harness process for every stage. You do not perform any of those stages yourself
   exact problem and stop.
 - The product default checkout cannot be identified uniquely -> show the
   candidate worktrees and stop.
-- The runner path does not exist or is not executable -> report the resolved path
-  and stop; do not search caches or the product repository for another copy.
+- Either bundled script does not exist or is not executable -> report both
+  resolved paths and stop; do not search caches or the product repository for
+  another copy.
+- Detached mode without `tmux`, or with an existing `kaitersberg-PROJ-x` session
+  -> report the condition and stop. Never replace or join an existing session as
+  if a new run had started.
 - The runner returns exit 2 (a product decision is needed) -> report the persisted
   stage and reason and stop. Do not answer the product question yourself.
 
 ---
 
-## Phase 0 - Resolve the product and runner
+## Phase 0 - Resolve the product and runtime
 
 ```
 🔁 Build loop: PROJ-x
@@ -63,24 +74,40 @@ only the product context file's *Unattended runs* section and the matching featu
 row to surface repository-specific controls; the runner and stage skills read the
 rest when they need it.
 
-Set `LOOP` exactly as required in the first hard rule. Verify `[ -x "$LOOP" ]`.
+Set `LOOP` and `STATUS` exactly as required in the first hard rule and verify both
+are executable. Resolve the absolute state path as
+`<git-common-dir>/kaitersberg/loops/PROJ-x.json` and the absolute event-log path as
+`<default-checkout>/<feature-folder>/loop.log`. The state or log may not exist yet
+before a detached child finishes initialising; their paths are still deterministic.
 
-## Phase 1 - Start the loop
+## Phase 1 - Run the selected mode
 
-From the default checkout, run:
+For `status` or `follow`, inspect the existing loop without starting one:
+
+```bash
+"$STATUS" PROJ-x
+"$STATUS" PROJ-x --follow
+```
+
+For the default attached mode, run from the default checkout and wait for the
+runner process itself to end:
 
 ```bash
 "$LOOP" PROJ-x
 ```
 
-Pass through only environment overrides the user or product context supplied.
-Keep the process attached and wait for its result unless the user explicitly asks
-for a detached run. For a detached run use the product's documented supervisor
-command; do not improvise a background process whose owner and logs disappear.
+For `detached`, require a free session named `kaitersberg-PROJ-x`. Start
+`tmux new-session -d` in the default checkout with the runner command, feature ID
+and every explicit environment override shell-escaped as separate values. Do not
+type the command through an interactive login shell and do not wait for the tmux
+child to finish.
 
 ## Phase 2 - Report the handoff
 
-Report the runner's exit meaning and the path it printed for persisted state:
+For status and follow, report only what the bundled status helper observed.
+
+For an attached run, and only after the runner process itself ended, report its
+exit meaning:
 
 - exit 0: delivery reached PR, or stopped before PR because `PR=0`;
 - exit 1: a findings budget was exhausted;
@@ -88,13 +115,26 @@ Report the runner's exit meaning and the path it printed for persisted state:
 - exit 3: infrastructure or harness failure, including capacity rejection.
 
 Include the current stage, the next operator action and the runner's bounded cost
-summary. Do not call a stopped or rate-limited run complete.
+summary plus the state and event-log paths printed by the runner. Do not call a
+stopped or rate-limited run complete.
+
+For a detached run, use a separate **Detached handoff**. Do not apply the runner
+exit table. State explicitly that delivery is still running or initialising, then
+report:
+
+- the `kaitersberg-PROJ-x` tmux session name;
+- the absolute state and event-log paths resolved in Phase 0;
+- `tmux attach-session -t '=kaitersberg-PROJ-x'` to watch the raw session;
+- `"$STATUS" PROJ-x` for a snapshot; and
+- `"$STATUS" PROJ-x --follow` for the event stream.
 
 ## Checklist
-- [ ] Bundled runner resolved without a product or cache path guess
+- [ ] Bundled runner and status helper resolved without a product or cache path guess
 - [ ] Command started from the product default checkout
 - [ ] Exactly one explicit feature ID selected
 - [ ] User/product environment overrides preserved, none invented
 - [ ] Fresh-process stage isolation left to the runner
-- [ ] Exit, persisted stage and next action reported
+- [ ] Attached runner exit interpreted only after that process ended
+- [ ] Detached start reported as accepted, never as completed
+- [ ] Session, state, event-log and installed status commands reported when detached
 - [ ] `/merge` not started

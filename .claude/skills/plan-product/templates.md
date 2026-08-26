@@ -440,9 +440,11 @@ record a framework checkout or plugin-cache path. Say that restarting resumes th
 persisted stage, and name the explicit state-reset and manual import-stage controls
 supplied by the framework.
 
-Name how to ask the build-loop skill to start it detached under `tmux`. A run takes
-hours, and an agent that starts it attached to a chat session takes it down again
-when that session ends, with the stage in flight uncommitted in the worktree.>
+Name its `detached`, `status` and `follow` modes. A detached handoff reports the
+tmux session plus the state and event-log paths; tmux accepting the session is not
+a completed delivery. A run takes hours, and an agent that starts it attached to a
+chat session takes it down again when that session ends, with the stage in flight
+uncommitted in the worktree.>
 
 ## Rules
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is

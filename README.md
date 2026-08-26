@@ -276,16 +276,28 @@ the pull request. Invoke it from the product repository:
 ```text
 # Claude Code
 /kaitersberg:build-loop PROJ-x
+/kaitersberg:build-loop PROJ-x detached
+/kaitersberg:build-loop PROJ-x status
+/kaitersberg:build-loop PROJ-x follow
 
 # Codex
 $kaitersberg:build-loop PROJ-x
+$kaitersberg:build-loop PROJ-x detached
+$kaitersberg:build-loop PROJ-x status
+$kaitersberg:build-loop PROJ-x follow
 ```
 
-Ask the skill to set `ROUNDS=3`, to use a specific harness, to set `PR=0`, or to
-start detached under `tmux` when needed. It passes those explicit controls to the
+The default stays attached and applies the exit table only after the runner itself
+ends. `detached` starts the runner under a deterministic tmux session and returns
+immediately; that successful start means **accepted, not delivered**. Its handoff
+names the session, state file, event log, snapshot command and follow command.
+`status` prints a read-only snapshot and `follow` streams loop events without
+joining or changing the run. Ask the skill to set `ROUNDS=3`, to use a specific
+harness or to set `PR=0` when needed. It passes those explicit controls to the
 runner and otherwise keeps the runner defaults.
 
-The runner and both helpers live in `skills/build-loop/scripts/` inside the
+The runner and its state, review and status helpers live in
+`skills/build-loop/scripts/` inside the
 installed plugin. Claude resolves that directory with `${CLAUDE_PLUGIN_ROOT}`;
 Codex starts from the exact `SKILL.md` path in its skill catalog and resolves the
 sibling `scripts/` directory. The skill therefore works in a foreign product
@@ -327,14 +339,14 @@ returns no structured outcome. A restart cannot silently reset an exhausted
 `ROUNDS` budget; inspect the reports, raise the budget deliberately or archive the
 state with `LOOP_RESET=1`. Only one loop for a feature may hold the lock.
 
-Two commands watch a run without joining it. `scripts/loop-status.sh [PROJ-x]
-[--follow]` is the read-only status view over that persisted state: one block per
-feature - stage, round against the recorded `ROUNDS` budget, whether a loop
-process is alive, the lock, the last event and the feature worktree's latest
+Two build-loop modes watch a run without joining it: `PROJ-x status` and
+`PROJ-x follow`. They resolve the bundled `loop-status.sh`, whose snapshot is one
+block per feature - stage, round against the recorded `ROUNDS` budget, whether a
+loop process is alive, the lock, the last event and the feature worktree's latest
 commit - and it tells running, stopped on a decision, rounds exhausted, finished
-and stale (no process, state not terminal) apart. `--follow` then tails the
-loops' event streams. It takes no lock and writes nothing, so it is always safe
-next to a live loop. `LOOP_NOTIFY=<executable>` makes the loop announce itself:
+and stale (no process, state not terminal) apart. `--follow` then tails the loops'
+event streams. It takes no lock and writes nothing, so it is always safe next to a
+live loop. `LOOP_NOTIFY=<executable>` makes the loop announce itself:
 the command runs as `<notifier> <feature> <event> <detail>` for `stage_started`
 and `stage_done` (with `build round 1/3`), `decision_needed` (with the reason the
 plan is silent), `rounds_exhausted` (with the stage that never went green) and
@@ -346,10 +358,11 @@ is reported and ignored - notification is never load-bearing.
 
 A run takes hours, and every stage is a child of the shell that started it - close
 that terminal, or end the agent session that started it for you, and the stage in
-flight dies with its work uncommitted in the worktree. Ask build-loop to start the
-runner detached under `tmux` if it has to outlive the window; the skill supplies
-the installed runner path without recording it in the product repository. In a
-Kaitersberg source checkout, the compatibility entry point remains:
+flight dies with its work uncommitted in the worktree. Use build-loop's `detached`
+mode if it has to outlive the window. The skill supplies the installed runner path
+without recording it in the product repository and reports the exact tmux attach,
+status and follow commands. In a Kaitersberg source checkout, the compatibility
+entry point remains:
 
 ```bash
 tmux new -d -s PROJ-x 'KAITERSBERG_HARNESS=codex ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x'
@@ -519,7 +532,7 @@ bugs/INDEX.md · bugs/BUG-n-*.md  The short path
 | `/tech-design PROJ-x` | The approval document: every field, the admin/user difference, the flow, without code |
 | `/tasks PROJ-x` | Half-day tasks in parallel-safe batches, every one traceable to a criterion |
 | `/build PROJ-x` | The code, own worktree, test-first, batch by batch - also the mode that works findings |
-| `/build-loop PROJ-x` | Build, Review, QA and optionally PR in isolated sessions, using the runner bundled with the installed skill |
+| `/build-loop PROJ-x [detached\|status\|follow]` | Build, Review, QA and optionally PR in isolated sessions, or inspect that loop, using the runtime bundled with the installed skill |
 | `/review PROJ-x` | The diff against spec and design, from a fresh session |
 | `/qa PROJ-x` | The running system per criterion, in the browser, plus an adversarial pass |
 | `/pr PROJ-x` | The pull request, assembled from the artifacts |
@@ -548,7 +561,7 @@ knows exactly what it has to replace:
 | Claude Code specific | What it is | What a port needs |
 |---|---|---|
 | `.claude/skills/<name>/SKILL.md` | Where a skill lives and is discovered | The equivalent location for that harness |
-| `${CLAUDE_PLUGIN_ROOT}` in `/build-loop` | The install root for its bundled runner | Resolve `scripts/loop-feature.sh` relative to the exact loaded `SKILL.md` path |
+| `${CLAUDE_PLUGIN_ROOT}` in `/build-loop` | The install root for its bundled runtime | Resolve `loop-feature.sh` and `loop-status.sh` relative to the exact loaded `SKILL.md` path |
 | Frontmatter `user-invocable`, `allowed-tools`, `model`, `argument-hint`, `disable-model-invocation` | How the harness registers and constrains a skill - the last one keeps `/scaffold` from being called by a model that thought some configuration would help | The equivalent fields, or nothing |
 | `/skill-name` invocation | How a user starts one | The harness's own invocation |
 | `CLAUDE.md` | The file every Claude session reads first | The harness's context file - `AGENTS.md` for Codex. Generated templates use an explicit plain-path reading list, because Claude's `@path` imports are silent no-ops in Codex |
@@ -740,9 +753,8 @@ scripts/port-to-codex.py          What generates it, and the only place the
 scripts/update-installed-plugins.sh Refresh both cached local plugin installs
 scripts/loop-feature.sh           Compatibility entry point for the runner bundled
                                   in .claude/skills/build-loop/scripts/
-scripts/loop-status.sh            Read-only status of the persisted loops - stage,
-                                  round, process, lock - and --follow for the
-                                  event stream
+scripts/loop-status.sh            Compatibility entry point for build-loop's
+                                  bundled read-only status and event stream
 scripts/notify-ntfy.sh            Example LOOP_NOTIFY notifier posting to an ntfy
                                   topic; optional, never a default
 scripts/review-git.py             Compatibility entry point for build-loop's fixed

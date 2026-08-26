@@ -9,7 +9,9 @@ changed, and why it was wrong before.
 `/kaitersberg:build-loop` and `$kaitersberg:build-loop` resolve the runner bundled
 inside the installed plugin, so product repositories no longer need to know a
 Kaitersberg checkout or plugin-cache path. The old top-level script paths remain
-compatibility entry points for framework contributors.
+compatibility entry points for framework contributors. Detached starts now return
+their tmux session and observation paths without claiming delivery completed, and
+the read-only status helper ships in the same runtime bundle.
 
 **Delivery feedback is cheaper and keeps its evidence.** Batch tasks now carry
 targeted gates while the complete gate runs once at integration. Specifications

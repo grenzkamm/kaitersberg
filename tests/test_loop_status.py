@@ -13,6 +13,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 STATUS = ROOT / "scripts" / "loop-status.sh"
+BUNDLED_STATUS = (
+    ROOT
+    / ".claude"
+    / "skills"
+    / "build-loop"
+    / "scripts"
+    / "loop-status.sh"
+)
 STATE_HELPER = ROOT / "scripts" / "loop-state.py"
 
 
@@ -37,9 +45,11 @@ class LoopStatusTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def run_status(self, *args: str) -> subprocess.CompletedProcess[str]:
+    def run_status(
+        self, *args: str, status_path: Path = STATUS
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["bash", str(STATUS), *args],
+            ["bash", str(status_path), *args],
             cwd=self.repo,
             env=self.clean_env,
             text=True,
@@ -63,6 +73,12 @@ class LoopStatusTest(unittest.TestCase):
 
     def test_repo_without_state_exits_zero_with_a_clear_message(self) -> None:
         result = self.run_status()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no loop state", result.stdout)
+
+    def test_bundled_status_operates_from_a_foreign_product_repo(self) -> None:
+        result = self.run_status(status_path=BUNDLED_STATUS)
+
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("no loop state", result.stdout)
 

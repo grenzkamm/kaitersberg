@@ -273,6 +273,12 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(self.state()["stage"], "complete")
         self.assertEqual(len(self.calls.read_text(encoding="utf-8").splitlines()), 4)
         self.assertFalse((self.state_path().parent / "PROJ-7.pid").exists())
+        self.assertIn(f"state: {self.state_path().resolve()}", result.stdout)
+        self.assertIn(
+            "events: "
+            f"{(self.repo / 'features' / 'PROJ-7-example' / 'loop.log').resolve()}",
+            result.stdout,
+        )
 
     def test_bundled_runner_operates_from_a_foreign_product_repo(self) -> None:
         result = self.run_loop(
@@ -533,6 +539,12 @@ class FeatureLoopTest(unittest.TestCase):
     def test_blocked_stage_notifies_the_missing_decision(self) -> None:
         result = self.run_loop(["blocked"], **self.notify_env())
         self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn(f"state: {self.state_path().resolve()}", result.stdout)
+        self.assertIn(
+            "events: "
+            f"{(self.repo / 'features' / 'PROJ-7-example' / 'loop.log').resolve()}",
+            result.stdout,
+        )
         self.assertEqual(
             self.notifications()[-1],
             ["PROJ-7", "decision_needed", "which provider owns login"],

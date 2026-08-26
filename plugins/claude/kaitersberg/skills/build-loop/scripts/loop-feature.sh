@@ -23,8 +23,8 @@
 #
 # Outliving the window: every stage is a child of the shell that started this, so
 # closing the terminal - or ending the agent session that started it for you - kills
-# the stage in flight with its work uncommitted. Detach it if that matters:
-#   tmux new -d -s PROJ-x 'ROUNDS=3 scripts/loop-feature.sh PROJ-x'
+# the stage in flight with its work uncommitted. Use build-loop's detached mode;
+# it resolves this installed path and returns the session and observation commands.
 #
 # Being told what happens: set LOOP_NOTIFY to an executable and the loop runs it
 # as  <notifier> <feature> <event> <detail>  at its decision points -
@@ -36,7 +36,7 @@
 # whole run still works too:
 #   ntfy done -- scripts/loop-feature.sh PROJ-3
 # A failing, missing or hanging notifier is reported and ignored - notification
-# is never load-bearing. scripts/loop-status.sh reads the state this script
+# is never load-bearing. The bundled loop-status.sh reads the state this script
 # persists without touching it.
 # Being told per stage: set STAGE_DONE_CMD to a shell command; it runs after every
 # stage outcome and its persisted transition with STAGE, OUTCOME, FEATURE, RUN_ID,
@@ -130,11 +130,13 @@ fi
 RUN_ID=${RUN_ID:-"$(date -u +%Y%m%dT%H%M%SZ)-$$"}
 START_STAGE=${START_STAGE:-build}
 ROUNDS=${ROUNDS:-3}  # maximum persisted red/incomplete outcomes per stage
-# The budget is persisted so a read-only observer (scripts/loop-status.sh) can
+# The budget is persisted so the bundled read-only loop-status.sh can
 # show "round X/Y" and tell an exhausted loop from a merely stopped one.
 python3 "$STATE_HELPER" init "$STATE_FILE" "$F" "$RUN_ID" \
   --stage "$START_STAGE" --rounds "$ROUNDS" >/dev/null
 RUN_ID=$(python3 "$STATE_HELPER" show "$STATE_FILE" --field run_id)
+printf '%s: state: %s\n' "$F" "$STATE_FILE"
+printf '%s: events: %s/%s/loop.log\n' "$F" "$(pwd -P)" "$D"
 
 # /build dispatches its tasks as background subagents, and `claude -p` kills those
 # ten minutes after its own turn ends - which is how the first PROJ-3 run lost an

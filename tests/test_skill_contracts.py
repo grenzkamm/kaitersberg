@@ -77,13 +77,14 @@ class SkillContractTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         relative_scripts = (
             "scripts/loop-feature.sh",
+            "scripts/loop-status.sh",
             "scripts/loop-state.py",
             "scripts/review-git.py",
         )
 
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/", source)
         self.assertNotIn("CLAUDE_PLUGIN_ROOT", codex)
-        self.assertIn("exact path of this loaded `SKILL.md`", codex)
+        self.assertIn("exact directory containing this loaded `SKILL.md`", codex)
         for relative in relative_scripts:
             source_path = SKILLS / "build-loop" / relative
             self.assertTrue(source_path.is_file(), relative)
@@ -98,6 +99,13 @@ class SkillContractTest(unittest.TestCase):
                     stat.S_IMODE(generated.stat().st_mode),
                     stat.S_IMODE(source_path.stat().st_mode),
                 )
+
+    def test_build_loop_distinguishes_detached_start_from_runner_completion(self) -> None:
+        skill = (SKILLS / "build-loop" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("means only that tmux accepted the session", skill)
+        self.assertIn("Do not apply the runner\nexit table", skill)
+        self.assertIn('`"$STATUS" PROJ-x --follow`', skill)
 
 
 if __name__ == "__main__":

@@ -58,10 +58,11 @@ Then:"""
 PROSE = [
     (
         "Set `LOOP` to\n"
-        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh\"`.",
-        "Resolve the exact path of this loaded `SKILL.md` from Codex's skill catalog,\n"
-        "  then set `LOOP` to the `scripts/loop-feature.sh` file beside it. Do not\n"
-        "  infer the installed plugin root from the current repository or a cache path.",
+        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh\"` and `STATUS`\n"
+        "  to `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-status.sh\"`.",
+        "Resolve the exact directory containing this loaded `SKILL.md` from Codex's\n"
+        "  skill catalog. Set `LOOP` to its `scripts/loop-feature.sh` and `STATUS` to\n"
+        "  its `scripts/loop-status.sh`.",
     ),
     ("CLAUDE.md", "AGENTS.md"),
     (".claude/skills/", ".agents/skills/"),
