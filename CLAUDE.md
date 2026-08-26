@@ -119,6 +119,13 @@ before committing. During local plugin development,
 `scripts/update-installed-plugins.sh` gives both manifests one shared cachebuster,
 reinstalls both hosts and verifies their installed versions.
 
+## Changing this repository
+Never develop or push directly on the default branch, including as a maintainer or
+administrator. Give every change its own branch and worktree, open a pull request,
+and integrate it into `main` with GitHub's **Squash and merge**. This keeps review
+and CI as the mandatory integration boundary and makes GitHub create and sign the
+single commit on `main`, so the public history shows it as **Verified**.
+
 ## Changing a skill
 Regenerate the Codex port and plugin bundle (`python3 scripts/port-to-codex.py`) and
 commit all generated sides together - a stale port is worse than none.
