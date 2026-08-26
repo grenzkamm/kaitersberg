@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import os
 import subprocess
-import unittest
 import tempfile
+import time
+import unittest
 from pathlib import Path
 
 
@@ -101,6 +102,27 @@ class LoopStatusTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.state_path.read_text(encoding="utf-8"), before)
         self.assertFalse((self.state_path.parent / "LST-41.lock").exists())
+
+    def test_bug_3_same_feature_process_from_another_repo_is_not_running(self) -> None:
+        self.init_state()
+        foreign = subprocess.Popen(
+            ["bash", "-c", "sleep 5 & wait", "loop-feature.sh", "LST-41"],
+            env=self.clean_env,
+        )
+        try:
+            time.sleep(0.1)
+            result = self.run_status("LST-41")
+        finally:
+            foreign.terminate()
+            try:
+                foreign.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                foreign.kill()
+                foreign.wait(timeout=1)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("stale: no loop process", result.stdout)
+        self.assertIn("process     none", result.stdout)
 
 
 if __name__ == "__main__":
