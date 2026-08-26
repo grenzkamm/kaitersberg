@@ -1,6 +1,6 @@
 # BUG-4: The status template points at the wrong source for feature scope
 
-**Status:** Reproduced
+**Status:** Fixed
 **Severity:** Minor
 **Reported:** 2026-08-26 by review   **Affects:** status-page runs after the 0.5.2 token-cost change
 **Feature:** Status skill   **Branch:** muichdistl/fix-loop-review-findings
@@ -51,7 +51,7 @@
 ## Fix
 - **What changed:** the authored template now names `features/INDEX.md`; the Codex
   port and both plugin bundles were regenerated, and both plugin versions moved to
-  0.5.3.
+  0.6.1.
 - **Where:** `.claude/skills/status/template.md` and its generated copies
 - **Regression test:** `BUG-4 status template uses the board scope line` - source
   contract, seen failing first

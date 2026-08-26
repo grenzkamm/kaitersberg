@@ -1,6 +1,6 @@
 # BUG-3: loop-status mistakes a loop from another repository for the local loop
 
-**Status:** Reproduced
+**Status:** Fixed
 **Severity:** Minor
 **Reported:** 2026-08-26 by review   **Affects:** users with two product repositories containing the same feature ID
 **Feature:** Delivery loop   **Branch:** muichdistl/fix-loop-review-findings

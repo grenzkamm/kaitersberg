@@ -1,6 +1,6 @@
 # BUG-2: A hanging notifier blocks the delivery loop without timeout(1)
 
-**Status:** Reproduced
+**Status:** Fixed
 **Severity:** Major
 **Reported:** 2026-08-26 by review   **Affects:** users enabling `LOOP_NOTIFY` on systems without GNU timeout, including a default macOS installation
 **Feature:** Delivery loop   **Branch:** muichdistl/fix-loop-review-findings
@@ -35,7 +35,8 @@
   FAILED (errors=1)
   ```
 - **Minimised to:** one fake product, one blocked fake stage, an isolated command
-  path without timeout and a notifier whose only child sleeps.
+  path without timeout and a notifier whose child ignores `SIGTERM` while holding
+  the loop's output pipes open.
 
 ## Cause
 - **Candidates considered:**
@@ -52,11 +53,14 @@
 
 ## Fix
 - **What changed:** Notifications run through the already-required Python runtime
-  with a 30-second default bound. Each notifier gets its own process group so a
-  timeout terminates its children too; failures remain reported and ignored.
+  with a 30-second default bound. Each notifier gets its own process group. After
+  the timeout that group receives `SIGTERM`; when the grace period ends, every
+  remaining group member receives `SIGKILL` even if the direct notifier process
+  has already exited. Failures remain reported and ignored.
 - **Where:** the shared `notify()` function in `scripts/loop-feature.sh`
 - **Regression test:** `BUG-2 hanging notifier is bounded without timeout binary`
-  - command integration, seen timing out before the fix and green afterwards
+  - command integration with a resistant child process, seen timing out before
+    the fix and green afterwards
 
 ## Existing damage
 | Records affected | State now | What was done |
