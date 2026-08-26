@@ -75,6 +75,8 @@ printf 'state: %s\n' "$STATE_FILE"
 printf 'events: %s\n' "$EVENT_LOG"
 printf 'launcher log: %s\n' "$CAPTURE"
 printf 'launcher exit: %s\n' "$EXIT_FILE"
-printf "attach while present: tmux attach-session -t '=%s'\n" "$SESSION"
+# Not "attach and watch": the pane stays blank by construction, because the
+# command above redirects the runner's entire output into the launcher log.
+printf 'watch stage output: tail -n +1 -f %q\n' "$CAPTURE"
 printf 'status: %q %q\n' "$STATUS" "$F"
 printf 'follow: %q %q --follow\n' "$STATUS" "$F"

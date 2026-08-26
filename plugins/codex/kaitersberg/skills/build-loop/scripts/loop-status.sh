@@ -40,8 +40,8 @@ ROOT=$(dirname "$GIT_COMMON")
 
 shopt -s nullglob
 
-detached_record() { # detached_record <feature> - latest durable launcher result
-  local feature=$1 log exit_file code
+detached_record() { # detached_record <feature> [have_state] - latest durable launcher result
+  local feature=$1 have_state=${2:-} log exit_file code
   local logs=("$STATE_DIR/$feature"-*.detached.log)
   ((${#logs[@]})) || return 1
   log=${logs[$((${#logs[@]} - 1))]}
@@ -49,6 +49,12 @@ detached_record() { # detached_record <feature> - latest durable launcher result
   if [[ -f $exit_file ]]; then
     IFS= read -r code < "$exit_file" || code="unreadable"
     printf '%s  detached launcher exited %s\n' "$feature" "$code"
+  elif [[ -n $have_state ]]; then
+    # The state block above already says what is known; the launcher's
+    # "current state unknown" would contradict it line for line. Its log still
+    # carries the full harness output of the running stage, so keep that pointer.
+    printf '  launcher log   %s\n' "$log"
+    return 0
   else
     printf '%s  detached launcher accepted; current state unknown\n' "$feature"
   fi
@@ -173,7 +179,7 @@ for state_file in "${STATES[@]}"; do
   printf '  lock        %s\n' "$lock"
   printf '  last event  %s\n' "$last_event"
   printf '  worktree    %s\n' "$head_line"
-  detached_record "$feature" || true
+  detached_record "$feature" have_state || true
   echo
 done
 

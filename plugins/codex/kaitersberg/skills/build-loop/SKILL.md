@@ -129,7 +129,9 @@ helper shows either persisted runner state or a durable launcher exit. Then repo
 - the absolute state and event-log paths resolved in Phase 0;
 - the launcher log and exit-code paths printed by `DETACH`, which remain after an
   immediately failed pane disappears;
-- `tmux attach-session -t '=kaitersberg-PROJ-x'` while the session still exists;
+- `tail -n +1 -f` on that launcher log for the live output of the running stage
+  - never `tmux attach`, whose pane stays blank by construction because the
+  launcher redirects the runner's entire output into that log;
 - `"$STATUS" PROJ-x` for a snapshot; and
 - `"$STATUS" PROJ-x --follow` for the event stream.
 
