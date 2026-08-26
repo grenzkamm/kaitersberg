@@ -18,8 +18,12 @@
 #
 # Watching it: the tool calls of the running stage go to stderr as they happen.
 # The raw event stream is appended to <feature>/loop.log, so a second terminal
-# can follow along with
-#   tail -f features/PROJ-x-*/loop.log | jq
+# can read what a Claude stage says as it says it with
+#   tail -n +1 -f features/PROJ-x-*/loop.log | jq -Rr --unbuffered 'fromjson?
+#     | select(.type=="assistant") | .message.content[]?
+#     | select(.type=="text") | .text + "\n---"'
+# (a codex stage emits other event shapes - adjust the filter); the bundled
+# loop-status.sh --follow prints only the loop's own kaitersberg events.
 #
 # Outliving the window: every stage is a child of the shell that started this, so
 # closing the terminal - or ending the agent session that started it for you - kills

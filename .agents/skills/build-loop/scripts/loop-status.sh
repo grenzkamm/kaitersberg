@@ -40,8 +40,8 @@ ROOT=$(dirname "$GIT_COMMON")
 
 shopt -s nullglob
 
-detached_record() { # detached_record <feature> - latest durable launcher result
-  local feature=$1 log exit_file code
+detached_record() { # detached_record <feature> [have_state] - latest durable launcher result
+  local feature=$1 have_state=${2:-} log exit_file code
   local logs=("$STATE_DIR/$feature"-*.detached.log)
   ((${#logs[@]})) || return 1
   log=${logs[$((${#logs[@]} - 1))]}
@@ -49,6 +49,12 @@ detached_record() { # detached_record <feature> - latest durable launcher result
   if [[ -f $exit_file ]]; then
     IFS= read -r code < "$exit_file" || code="unreadable"
     printf '%s  detached launcher exited %s\n' "$feature" "$code"
+  elif [[ -n $have_state ]]; then
+    # The state block above already says what is known; the launcher's
+    # "current state unknown" would contradict it line for line. Its log still
+    # carries the full harness output of the running stage, so keep that pointer.
+    printf '  launcher log   %s\n' "$log"
+    return 0
   else
     printf '%s  detached launcher accepted; current state unknown\n' "$feature"
   fi
@@ -110,6 +116,19 @@ mtime() { # file modification time, BSD stat first, then GNU
     || stat -c '%y' "$1" 2>/dev/null || echo "?"
 }
 
+report_verdict() { # report_verdict <file> <label> - one line per stage report
+  # The report headings follow the product's language, but the verdict values
+  # are the fixed vocabulary of the bundled templates - so only that enum is
+  # matched, and its first occurrence is the Verdict section by construction.
+  # An unrecognised verdict drops to a neutral note rather than guessing.
+  local file=$1 label=$2 verdict
+  [[ -f $file ]] || return 0
+  grep -q "kaitersberg-report: $label" "$file" 2>/dev/null || return 0
+  verdict=$(grep -m1 -oE 'Approved with notes|Approved|Changes required|Production ready|Ready with reservations|Not production ready' \
+    "$file" 2>/dev/null | head -1) || true
+  printf '  %-11s %s (%s)\n' "$label" "${verdict:-written, verdict not recognised}" "$(mtime "$file")"
+}
+
 for state_file in "${STATES[@]}"; do
   STATE=$(cat "$state_file")
   feature=$(jq -r '.feature // empty' <<<"$STATE")
@@ -149,16 +168,52 @@ for state_file in "${STATES[@]}"; do
   # Fixed read-only queries only: list the worktrees, then read one HEAD.
   head_line="no feature worktree"
   worktree=""
+  feature_worktree=""
   while IFS= read -r line; do
     case $line in
       "worktree "*) worktree=${line#worktree } ;;
       "branch refs/heads/feature/$feature" | "branch refs/heads/feature/$feature-"*)
+        feature_worktree=$worktree
         head_line=$(git -C "$worktree" log -1 --format='%s (%cr)' 2>/dev/null) \
           || head_line="worktree at $worktree is unreadable"
         break
         ;;
     esac
   done < <(git worktree list --porcelain 2>/dev/null)
+
+  # The feature's documents: the stages write them in the feature worktree
+  # while one exists; before the claim and after the merge the default
+  # checkout's copy is current.
+  feature_dir=""
+  candidate_dirs=()
+  [[ -n $feature_worktree ]] \
+    && candidate_dirs+=("$feature_worktree"/features/"$feature"-*/)
+  candidate_dirs+=("$ROOT"/features/"$feature"-*/)
+  for dir in "${candidate_dirs[@]}"; do
+    [[ -d $dir ]] && { feature_dir=${dir%/}; break; }
+  done
+
+  # Task progress from tasks.md: the build maintains its Status column.
+  # ponytail: trusts the bundled template's column order (status second-to-last,
+  # owner last) - a reshaped table drops the line rather than breaking the block.
+  tasks_line=""
+  if [[ -n $feature_dir && -f $feature_dir/tasks.md ]]; then
+    tasks_line=$(awk -F'|' -v f="$feature" '
+      $2 ~ "^[[:space:]]*" f "-T[0-9]+[[:space:]]*$" {
+        total++
+        status = $(NF-2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", status)
+        id = $2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", id)
+        if (status == "Done") finished++
+        else if (status == "In Progress")
+          active = active (active == "" ? "" : ", ") id
+      }
+      END {
+        if (!total) exit
+        line = finished "/" total " done"
+        if (active != "") line = line ", in progress: " active
+        print line
+      }' "$feature_dir/tasks.md")
+  fi
 
   printf '%s  %s\n' "$feature" "$verdict"
   if [[ $stage == complete ]]; then
@@ -173,7 +228,10 @@ for state_file in "${STATES[@]}"; do
   printf '  lock        %s\n' "$lock"
   printf '  last event  %s\n' "$last_event"
   printf '  worktree    %s\n' "$head_line"
-  detached_record "$feature" || true
+  [[ -z $tasks_line ]] || printf '  tasks       %s\n' "$tasks_line"
+  report_verdict "$feature_dir/review.md" review
+  report_verdict "$feature_dir/qa.md" qa
+  detached_record "$feature" have_state || true
   echo
 done
 
