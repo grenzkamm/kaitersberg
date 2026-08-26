@@ -19,7 +19,7 @@ context.
 ## Hard rules
 - **You move no status rung and you fix nothing.** Not the board, not a
   specification, not a finding. If the documents say something uncomfortable, the
-  page says it too. A dashboard that flatters is worse than none, because somebody
+  page says it too. A status page that flatters is worse than none, because somebody
   will make a decision on it.
 - **Write exactly one file: `docs/status.html`.** Self-contained - no external
   stylesheet, no script from a network, no font download. It has to work opened
@@ -38,7 +38,7 @@ context.
 ## Abort conditions
 - No `features/INDEX.md` → nothing has been planned yet. Point at `$plan-product`.
 - The board exists but has no rows → say so in one sentence and write nothing. An
-  empty dashboard is a broken link waiting to happen.
+  empty status page is a broken link waiting to happen.
 
 ---
 

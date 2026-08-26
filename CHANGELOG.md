@@ -10,6 +10,13 @@ retention, access and security questions, but its recommendations are not legal
 advice and do not make a product GDPR compliant. The README now names the
 product-specific legal and operational work that remains before production use.
 
+**The local loop dashboard and JSON API are removed.** Their progress view
+duplicated what Claude or Codex can answer from the board, feature artifacts and
+persisted loop state, while adding a server, API contract, fixture product,
+screenshots and a separate test surface. `/status` remains the explicit way to
+write a self-contained stakeholder page; `loop.log` and the state file remain the
+machine-readable record of an unattended run.
+
 ## 0.5.0 - 2026-08-25
 
 **First public test release.** Kaitersberg ships the complete specification-first

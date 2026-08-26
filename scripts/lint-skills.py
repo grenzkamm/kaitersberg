@@ -63,7 +63,7 @@ def check(skill_dir, known):
 
     # Handoffs are the failure this repository produces most easily. A reference
     # stands on its own - `/build PROJ-x` - so a path segment (`<name>/spec.md`,
-    # `/api/v1`) and markup (`</script>`) must not be mistaken for one.
+    # `/api/items`) and markup (`</script>`) must not be mistaken for one.
     references = re.findall(r"(?:^|[\s(\[])/([a-z][a-z-]{2,})(?=[\s.,;:!?)\]`]|$)", text, re.M)
     for name in set(references):
         if name not in known:
