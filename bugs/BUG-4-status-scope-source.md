@@ -1,6 +1,6 @@
 # BUG-4: The status template points at the wrong source for feature scope
 
-**Status:** Fixed
+**Status:** Closed
 **Severity:** Minor
 **Reported:** 2026-08-26 by review   **Affects:** status-page runs after the 0.5.2 token-cost change
 **Feature:** Status skill   **Branch:** muichdistl/fix-loop-review-findings

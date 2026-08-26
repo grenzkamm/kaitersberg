@@ -1,6 +1,6 @@
 # BUG-2: A hanging notifier blocks the delivery loop without timeout(1)
 
-**Status:** Fixed
+**Status:** Closed
 **Severity:** Major
 **Reported:** 2026-08-26 by review   **Affects:** users enabling `LOOP_NOTIFY` on systems without GNU timeout, including a default macOS installation
 **Feature:** Delivery loop   **Branch:** muichdistl/fix-loop-review-findings
