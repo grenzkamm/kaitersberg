@@ -161,7 +161,7 @@ single settle on load, and that is turned off for anyone who asked for less moti
     <!-- Repeat per feature that is In Progress or In Review. -->
     <div class="card">
       <h3>{{Feature name}}</h3>
-      <p>{{the scope line from spec.md}}</p>
+      <p>{{the scope line from features/INDEX.md}}</p>
       <p class="meta"><span class="pill">{{status in plain words}}</span> · {{n}} days in this state{{, and the verdict from review.md or qa.md when there is one}}</p>
     </div>
   </section>

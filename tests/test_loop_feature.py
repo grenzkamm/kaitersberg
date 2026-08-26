@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -139,7 +141,9 @@ class FeatureLoopTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def run_loop(self, outcomes: list[str], **extra: str) -> subprocess.CompletedProcess[str]:
+    def run_loop(
+        self, outcomes: list[str], timeout: float | None = None, **extra: str
+    ) -> subprocess.CompletedProcess[str]:
         self.queue.write_text("\n".join(outcomes) + "\n", encoding="utf-8")
         env = self.clean_env.copy()
         env.update(
@@ -160,11 +164,40 @@ class FeatureLoopTest(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
+            timeout=timeout,
         )
 
+    def path_without_timeout(self) -> str:
+        isolated = self.root / "no-timeout-bin"
+        isolated.mkdir()
+        for command in (
+            "bash",
+            "date",
+            "dirname",
+            "git",
+            "jq",
+            "mkdir",
+            "mktemp",
+            "rm",
+            "rmdir",
+            "sleep",
+            "tail",
+            "tee",
+            "wc",
+        ):
+            target = shutil.which(command)
+            if target is None:
+                self.fail(f"test prerequisite is missing: {command}")
+            os.symlink(target, isolated / command)
+        os.symlink(sys.executable, isolated / "python3")
+        os.symlink(self.bin / "claude", isolated / "claude")
+        return str(isolated)
+
+    def state_path(self) -> Path:
+        return self.repo / ".git" / "kaitersberg" / "loops" / "PROJ-7.json"
+
     def state(self) -> dict:
-        path = self.repo / ".git" / "kaitersberg" / "loops" / "PROJ-7.json"
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(self.state_path().read_text(encoding="utf-8"))
 
     def hook_env(self, **extra: str) -> dict[str, str]:
         return {
@@ -181,6 +214,7 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.state()["stage"], "complete")
         self.assertEqual(len(self.calls.read_text(encoding="utf-8").splitlines()), 4)
+        self.assertFalse((self.state_path().parent / "PROJ-7.pid").exists())
 
     def test_codex_runner_drives_each_stage_with_codex_exec(self) -> None:
         result = self.run_loop(
@@ -384,6 +418,33 @@ class FeatureLoopTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.state()["stage"], "complete")
+
+    def test_bug_2_hanging_notifier_is_bounded_without_timeout_binary(self) -> None:
+        self.notifier.write_text(
+            "#!/bin/sh\n"
+            "trap 'exit 0' TERM\n"
+            "python3 -c 'import os, pathlib, signal, time; "
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+            "pathlib.Path(os.environ[\"NOTIFY_CHILD_READY\"]).write_text(\"ready\"); "
+            "time.sleep(10)' &\n"
+            "while [ ! -e \"$NOTIFY_CHILD_READY\" ]; do :; done\n"
+            "wait\n",
+            encoding="utf-8",
+        )
+        self.notifier.chmod(0o755)
+
+        result = self.run_loop(
+            ["blocked"],
+            timeout=3,
+            PATH=self.path_without_timeout(),
+            LOOP_NOTIFY=str(self.notifier),
+            LOOP_NOTIFY_TIMEOUT="0.1",
+            LOOP_NOTIFY_KILL_GRACE="0.05",
+            NOTIFY_CHILD_READY=str(self.root / "notify-child-ready"),
+        )
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("LOOP_NOTIFY stage_started exited 124 (ignored)", result.stderr)
 
     def test_retry_budget_cannot_be_bypassed_by_restart(self) -> None:
         first = self.run_loop(["complete", "changes_required"], ROUNDS="1")

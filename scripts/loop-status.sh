@@ -48,10 +48,17 @@ else
     || { echo "no loop state below $STATE_DIR - no unattended run has started here"; exit 0; }
 fi
 
-loop_pid() { # best effort, the same ps query buzz-doctor.py uses; no pid is persisted
-  ps -axo pid=,command= 2>/dev/null \
-    | awk -v f="$1" '$0 ~ /loop-feature\.sh/ && $0 ~ ("(^| )" f "( |$)") {print $1; exit}' \
-    || true
+loop_pid() { # repository-bound: loop-feature writes this product's pid beside its lock
+  local feature=$1 pid_file=$STATE_DIR/$1.pid pid command
+  [[ -d $STATE_DIR/$1.lock ]] || return 0
+  [[ -f $pid_file ]] || return 0
+  IFS= read -r pid < "$pid_file" || return 0
+  [[ $pid =~ ^[0-9]+$ ]] || return 0
+  kill -0 "$pid" 2>/dev/null || return 0
+  command=$(ps -p "$pid" -o command= 2>/dev/null) || return 0
+  [[ $command =~ loop-feature\.sh ]] || return 0
+  [[ $command =~ (^|[[:space:]])$feature([[:space:]]|$) ]] || return 0
+  printf '%s\n' "$pid"
 }
 
 mtime() { # file modification time, BSD stat first, then GNU
