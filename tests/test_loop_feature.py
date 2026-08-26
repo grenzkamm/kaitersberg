@@ -193,9 +193,11 @@ class FeatureLoopTest(unittest.TestCase):
         os.symlink(self.bin / "claude", isolated / "claude")
         return str(isolated)
 
+    def state_path(self) -> Path:
+        return self.repo / ".git" / "kaitersberg" / "loops" / "PROJ-7.json"
+
     def state(self) -> dict:
-        path = self.repo / ".git" / "kaitersberg" / "loops" / "PROJ-7.json"
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(self.state_path().read_text(encoding="utf-8"))
 
     def hook_env(self, **extra: str) -> dict[str, str]:
         return {
@@ -212,6 +214,7 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.state()["stage"], "complete")
         self.assertEqual(len(self.calls.read_text(encoding="utf-8").splitlines()), 4)
+        self.assertFalse((self.state_path().parent / "PROJ-7.pid").exists())
 
     def test_codex_runner_drives_each_stage_with_codex_exec(self) -> None:
         result = self.run_loop(

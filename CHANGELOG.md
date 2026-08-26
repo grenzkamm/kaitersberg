@@ -5,6 +5,13 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
+**Loop observation is bounded and repository-specific.** A configured notifier
+now has the promised wall-clock limit even on macOS without coreutils, including
+its child processes. The status command identifies a running loop through the
+PID recorded beside this repository's lock instead of matching any same-named
+feature process on the machine. The status template now takes its scope line from
+the board, as the skill already required.
+
 **The privacy boundary is explicit.** Kaitersberg can surface personal data,
 retention, access and security questions, but its recommendations are not legal
 advice and do not make a product GDPR compliant. The README now names the

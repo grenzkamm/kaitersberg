@@ -112,12 +112,14 @@ GIT_COMMON=$(git rev-parse --git-common-dir)
 STATE_DIR=$GIT_COMMON/kaitersberg/loops
 STATE_FILE=$STATE_DIR/$F.json
 LOCK_DIR=$STATE_DIR/$F.lock
+PID_FILE=$STATE_DIR/$F.pid
 mkdir -p "$STATE_DIR"
 mkdir "$LOCK_DIR" 2>/dev/null || {
   echo "$F already has a loop lock at $LOCK_DIR" >&2; exit 75;
 }
 RUN_TMP=$(mktemp -d)
-trap 'rm -rf -- "$RUN_TMP"; rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
+trap 'rm -rf -- "$RUN_TMP"; rm -f -- "$PID_FILE"; rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
+printf '%s\n' "$$" > "$PID_FILE"
 
 if [[ ${LOOP_RESET:-0} == 1 && -f $STATE_FILE ]]; then
   mv "$STATE_FILE" "$STATE_FILE.$(date -u +%Y%m%dT%H%M%SZ).bak"
@@ -142,16 +144,48 @@ SKILL_NS=${SKILL_NS:-kaitersberg}
 INFRA_RETRIES=${INFRA_RETRIES:-3}
 STAGE_DONE_CMD=${STAGE_DONE_CMD:-}  # per-stage notification hook, see header
 LOOP_NOTIFY=${LOOP_NOTIFY:-}        # per-event notifier executable, see header
+LOOP_NOTIFY_TIMEOUT=${LOOP_NOTIFY_TIMEOUT:-30}  # seconds per notification
 
 notify() { # notify <event> <detail> - never load-bearing: a failing, missing or
   # hanging notifier is reported and ignored, so it can never stop the loop.
   [[ -n $LOOP_NOTIFY ]] || return 0
   local code=0
-  if [[ -n $TIMEOUT_BIN ]]; then
-    "$TIMEOUT_BIN" 30 "$LOOP_NOTIFY" "$F" "$1" "$2" || code=$?
-  else
-    "$LOOP_NOTIFY" "$F" "$1" "$2" || code=$?
-  fi
+  # Python is already required by the persisted-state helper. Use it here too so
+  # notifier isolation does not silently disappear on macOS without coreutils.
+  python3 - "$LOOP_NOTIFY_TIMEOUT" "$LOOP_NOTIFY" "$F" "$1" "$2" <<'PY' || code=$?
+import errno
+import os
+import signal
+import subprocess
+import sys
+
+try:
+    seconds = float(sys.argv[1])
+    if seconds <= 0:
+        raise ValueError
+except ValueError:
+    print("LOOP_NOTIFY_TIMEOUT must be a positive number", file=sys.stderr)
+    raise SystemExit(64)
+
+try:
+    process = subprocess.Popen(sys.argv[2:], start_new_session=True)
+except OSError as error:
+    print(error, file=sys.stderr)
+    raise SystemExit(127 if error.errno == errno.ENOENT else 126)
+
+try:
+    returncode = process.wait(timeout=seconds)
+except subprocess.TimeoutExpired:
+    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+    raise SystemExit(124)
+
+raise SystemExit(returncode if returncode >= 0 else 128 - returncode)
+PY
   (( code == 0 )) || echo "$F: LOOP_NOTIFY $1 exited $code (ignored)" >&2
 }
 
@@ -300,6 +334,7 @@ summary() {
 cleanup() {
   summary
   rm -rf -- "$RUN_TMP"
+  rm -f -- "$PID_FILE"
   rmdir "$LOCK_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT
