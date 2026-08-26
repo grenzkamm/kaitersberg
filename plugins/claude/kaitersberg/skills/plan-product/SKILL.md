@@ -345,10 +345,7 @@ It carries:
   a session three weeks later starts in this repository knowing nothing, and will
   run the pipeline by hand because nothing told it there was another way - or start
   the loop inside its own session and kill it again on the way out, which is the
-  same gap costing a whole run instead of a little time. Name the live dashboard
-  command too, including its `/api/v1` discovery URL and the fact that this API is
-  read-only and bound to localhost; otherwise a later integration will grow a
-  second parser for artefacts the dashboard already understands.
+  same gap costing a whole run instead of a little time.
 
 Use the `CLAUDE.md` skeleton in [templates.md](templates.md).
 
@@ -424,6 +421,6 @@ feat: Plan the product - PRD, feature map, data model, app shell
 - [ ] Design system only if visual input existed
 - [ ] Local dev planned, `.env.local.example` written, `.env.local` untouched
 - [ ] `CLAUDE.md` written: reading list, commands, status ladder, ask-do-not-invent;
-      unattended repositories also name the loop, dashboard and read-only API
+      unattended repositories also name the loop and how to start it detached
 - [ ] Any other harness context file in the root carries the same content, not an older one
 - [ ] No code, no config files, no services started

@@ -149,7 +149,7 @@ bounded; migrations, permission boundaries and broad shared changes force a full
 |---|---|---|
 | [Claude Code](https://claude.com/claude-code) 2.1.205+ or the Codex desktop app | everything | The skills are plugins for one of the two. The version floor is what the unattended loop needs (`--json-schema`) |
 | `git` | everything | Features are built in worktrees |
-| `python3`, `jq` | the loop and the dashboard | Both are standard-library only; `jq` reads the loop's event stream |
+| `python3`, `jq` | the loop | Python persists its state; `jq` reads the loop's event stream |
 | `tmux` or `coreutils` | the loop, optionally | To detach it, and for a wall clock per stage. It runs without either |
 | `shellcheck`, `ruff` | contributing | `scripts/check.sh` falls back to a syntax check when they are missing; `ruff.toml` owns the explicit Python rule set so a Ruff release cannot silently change the gate |
 
@@ -174,13 +174,6 @@ runtime dependencies.
 Kaitersberg is an independent project and is not affiliated with or endorsed by
 Block, Buzz or TaskView. Product names and trademarks belong to their respective
 owners.
-
-![The board and the loops running against it](docs/dashboard-board.jpg)
-
-![One feature: what is still open, what the round before settled, what landed since, and every task by batch](docs/dashboard-feature.jpg)
-
-<sub>`scripts/loop-dashboard.py`, photographed against `examples/demo-product` -
-invented data, not anybody's project.</sub>
 
 ---
 
@@ -326,9 +319,6 @@ Whatever holds the run, keep it out of the feature worktree: that is where
 to prevent. The loop belongs in the product repository on the default branch,
 which is also where the board is written.
 
-The dashboard finds the run whichever way it was started - it reads the process
-list, not the terminal.
-
 Findings send the round back to `/build`; the next round reviews the delta in a new
 session and QA retests the affected criteria. The runner persists its stage, SHA and
 per-stage budgets below Git's common directory, so restarting it resumes Review, QA
@@ -341,40 +331,11 @@ one branch; `PR=0` stops before that step instead, and `/merge` is never automat
 at all. Every invocation ends with what it cost: stages, turns, wall clock, tokens;
 the state file carries lifecycle attempts across invocations.
 
-Watch it while it runs:
-
-```bash
-python3 <framework>/scripts/loop-dashboard.py     # http://localhost:8787
-```
-
-The board as columns, one per rung, with what each loop is doing right now, what
-each feature's review and test report decided, its findings, its tasks by batch,
-and what the agents have spent on it. It renders from the board, the loop log and
-git on every request, so there is nothing to keep in sync - and it changes nothing.
-
-The same server exposes that read model as a versioned JSON API for local tools and
-optional one-way publishers:
-
-```bash
-curl http://localhost:8787/api/v1                 # discover the endpoints
-curl http://localhost:8787/api/v1/snapshot        # the complete read model in one response
-curl http://localhost:8787/api/v1/features        # board rows and their derived state
-curl http://localhost:8787/api/v1/features/PROJ-3 # one feature including tasks and findings
-curl http://localhost:8787/api/v1/loops
-curl http://localhost:8787/api/v1/bugs
-```
-
-Every response declares `schema_version: 1` and `read_only: true`. Only `GET` and
-`HEAD` are accepted; `POST`, `PUT`, `PATCH` and `DELETE` return `405`. The API has
-no database and no status-changing endpoint: `features/INDEX.md`, the loop state,
-reports, processes and git remain its inputs, never its outputs. The server still
-binds to `127.0.0.1` only. Putting it behind a network listener would require an
-explicit authentication and data-exposure design first, because findings and
-branch names can contain product information.
-
-Tell the sessions in the product repository that this exists: `/plan-product`
-writes an *Unattended runs* section into that repository's `CLAUDE.md` for exactly
-that, because a session three weeks later starts there knowing nothing.
+`/plan-product` writes the exact loop command into the product repository's
+*Unattended runs* section. A session three weeks later can therefore start or
+inspect the persisted run without inventing another orchestration path. For a
+human-readable project summary, ask Claude or Codex directly or run `/status` to
+write the self-contained `docs/status.html` stakeholder page.
 
 For a product connected to Buzz, diagnose the whole local delivery path from the
 product repository instead of inspecting its state files and tmux processes by
@@ -662,12 +623,10 @@ read the board, move a rung, file a ticket, link back. **When that document is
 absent, step 0 is what runs**, and nobody is asked anything.
 
 TaskView is a candidate for the first self-hosted adapter: its custom Kanban
-statuses, dependencies and API fit the feature board. It could replace the shared
-presentation of that board, but not the local reader that derives live stages,
-findings, attempts and cost from loop state, reports, processes and git. The
-existing dashboard therefore remains the offline default and live fallback; a
-TaskView integration only publishes a read-only projection and never accepts a
-dragged card or another status change back into `features/INDEX.md`.
+statuses, dependencies and API fit the feature board. Such an integration would
+publish a read-only projection from `features/INDEX.md` and the feature artifacts;
+it would never accept a dragged card or another status change back into the
+repository.
 
 Worth knowing before reaching for step 2: the usual reason to want a tracker is that
 somebody outside the terminal needs to see the state - and `/status` already answers
@@ -690,10 +649,10 @@ next person does not solve any of it by making the core configurable.
 |---|---|---|
 | **1** | **`LOOP_NOTIFY`** - the loop runs one command of your choosing when it ends or stops | The loop reports an exit code and nothing else, which is its one named gap. A hook that takes any command works with Slack, ntfy, a desktop notifier or a post into a workspace; binding the script to one vendor solves the same problem in a way that only helps one person |
 | **2** | **A check that a skill change demands a version bump** | `scripts/check.sh` verifies that both plugin manifests agree on a version. It does not notice that ten skill files changed while the version stood still, which is exactly what happened on the day the checks were written |
-| **3** | **`loop-next`** - take the next feature the pick rule allows and build it, then the one after | The dashboard already computes *pickable*: status `Ready`, no owner, every dependency `Done`. Turning that into a queue changes the unit from one feature unattended to a whole wave unattended, and it inherits every place the loop already stops. It must inherit them, not add new ones |
+| **3** | **`loop-next`** - take the next feature the pick rule allows and build it, then the one after | The board already defines *pickable*: status `Ready`, no owner, every dependency `Done`. Turning that into a queue changes the unit from one feature unattended to a whole wave unattended, and it inherits every place the loop already stops. It must inherit them, not add new ones |
 | **4** | **A [Buzz Projects](https://buzz.xyz/projects) activity adapter** - give each feature branch a shared channel and publish loop stages, commits, review and QA outcomes, approval requests and links to the repository artefacts as signed events | Buzz is a self-hosted relay where people, agents, workflows and git events share one searchable history, so the delivery loop fits it better than a generic notification does. Its project binding, issues, approval and merge surfaces still have to become stable enough to target. Until then this remains step 2 of the plan above: **one way out.** `features/INDEX.md` stays authoritative, and neither a Buzz event nor an action in Buzz may move a rung or merge a branch back in Kaitersberg |
 
-**Deliberately not planned.** Dragging a card between columns on the status page:
+**Deliberately not planned.** Dragging a card between columns in an external tracker:
 it would set a rung no skill wrote, which is the one thing the board must never
 show. Reading feature state back out of a tracker, for the reason in row 4. A
 setup skill whose whole job is a paragraph - `/plan-product` already writes the
@@ -752,7 +711,6 @@ scripts/loop-feature.sh           Build, review, qa and the pull request unatten
                                   one process per stage, stopping where a person
                                   is required
 scripts/review-git.py             Fixed read-only Git queries for unattended review
-scripts/loop-dashboard.py         The board and the running loops as a live page
 scripts/buzz-doctor.py            Read-only terminal diagnosis from loop to Buzz,
                                   plus one explicit active webhook probe
 ruff.toml                         The explicit Python lint contract

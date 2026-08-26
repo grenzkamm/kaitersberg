@@ -433,14 +433,7 @@ and manual import-stage controls supplied by the framework.
 Name how to start it so it outlives the window that started it - `tmux new -d`,
 or `orca terminal create --worktree … --command …` where Orca runs. A run takes
 hours, and an agent that starts it from a chat session takes it down again when
-that session ends, with the stage in flight uncommitted in the worktree.
-
-Name the command that starts the live dashboard. Say that the same localhost-only
-server exposes a versioned, read-only JSON API at `/api/v1`, with `/api/v1/snapshot`
-for the complete read model and `/api/v1/features`, `/api/v1/loops` and
-`/api/v1/bugs` for focused reads. State that it has no database or status-changing
-endpoint: `features/INDEX.md`, loop state, reports, processes and git remain its
-inputs, never its outputs.>
+that session ends, with the stage in flight uncommitted in the worktree.>
 
 ## Rules
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is
