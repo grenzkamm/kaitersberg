@@ -116,6 +116,19 @@ mtime() { # file modification time, BSD stat first, then GNU
     || stat -c '%y' "$1" 2>/dev/null || echo "?"
 }
 
+report_verdict() { # report_verdict <file> <label> - one line per stage report
+  # The report headings follow the product's language, but the verdict values
+  # are the fixed vocabulary of the bundled templates - so only that enum is
+  # matched, and its first occurrence is the Verdict section by construction.
+  # An unrecognised verdict drops to a neutral note rather than guessing.
+  local file=$1 label=$2 verdict
+  [[ -f $file ]] || return 0
+  grep -q "kaitersberg-report: $label" "$file" 2>/dev/null || return 0
+  verdict=$(grep -m1 -oE 'Approved with notes|Approved|Changes required|Production ready|Ready with reservations|Not production ready' \
+    "$file" 2>/dev/null | head -1) || true
+  printf '  %-11s %s (%s)\n' "$label" "${verdict:-written, verdict not recognised}" "$(mtime "$file")"
+}
+
 for state_file in "${STATES[@]}"; do
   STATE=$(cat "$state_file")
   feature=$(jq -r '.feature // empty' <<<"$STATE")
@@ -168,18 +181,23 @@ for state_file in "${STATES[@]}"; do
     esac
   done < <(git worktree list --porcelain 2>/dev/null)
 
-  # Task progress from the feature's tasks.md: the build maintains the Status
-  # column in its worktree, so that copy is current while a worktree exists;
-  # before the claim and after the merge the default checkout's copy is.
+  # The feature's documents: the stages write them in the feature worktree
+  # while one exists; before the claim and after the merge the default
+  # checkout's copy is current.
+  feature_dir=""
+  candidate_dirs=()
+  [[ -n $feature_worktree ]] \
+    && candidate_dirs+=("$feature_worktree"/features/"$feature"-*/)
+  candidate_dirs+=("$ROOT"/features/"$feature"-*/)
+  for dir in "${candidate_dirs[@]}"; do
+    [[ -d $dir ]] && { feature_dir=${dir%/}; break; }
+  done
+
+  # Task progress from tasks.md: the build maintains its Status column.
   # ponytail: trusts the bundled template's column order (status second-to-last,
   # owner last) - a reshaped table drops the line rather than breaking the block.
-  tasks_files=()
-  [[ -n $feature_worktree ]] \
-    && tasks_files+=("$feature_worktree"/features/"$feature"-*/tasks.md)
-  tasks_files+=("$ROOT"/features/"$feature"-*/tasks.md)
   tasks_line=""
-  for tasks_md in "${tasks_files[@]}"; do
-    [[ -f $tasks_md ]] || continue
+  if [[ -n $feature_dir && -f $feature_dir/tasks.md ]]; then
     tasks_line=$(awk -F'|' -v f="$feature" '
       $2 ~ "^[[:space:]]*" f "-T[0-9]+[[:space:]]*$" {
         total++
@@ -194,9 +212,8 @@ for state_file in "${STATES[@]}"; do
         line = finished "/" total " done"
         if (active != "") line = line ", in progress: " active
         print line
-      }' "$tasks_md")
-    break
-  done
+      }' "$feature_dir/tasks.md")
+  fi
 
   printf '%s  %s\n' "$feature" "$verdict"
   if [[ $stage == complete ]]; then
@@ -212,6 +229,8 @@ for state_file in "${STATES[@]}"; do
   printf '  last event  %s\n' "$last_event"
   printf '  worktree    %s\n' "$head_line"
   [[ -z $tasks_line ]] || printf '  tasks       %s\n' "$tasks_line"
+  report_verdict "$feature_dir/review.md" review
+  report_verdict "$feature_dir/qa.md" qa
   detached_record "$feature" have_state || true
   echo
 done
