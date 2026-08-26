@@ -127,11 +127,6 @@ in a trap, and prove the feature worktree clean afterwards. "Fix nothing" and
 For every criterion the spec's test plan marked end-to-end or manual, and for the
 journey step this feature belongs to, drive the real interface.
 
-**Inside Orca** (`ORCA_WORKTREE_ID` set, `orca` on the `PATH`) the app brings its
-own browser: invoke the `orca-cli` skill and drive that one, and skip the paragraph
-below. Everything after it - what you walk, what you read, what you capture - is
-the same whichever browser it is; only the tool changes.
-
 Use the Codex Browser plugin (`@Browser`) for this phase. For a local web
 application, open its local URL in the built-in browser. Enable Browser Developer
 mode with full CDP access when console, network, DOM or style inspection is required.
@@ -283,7 +278,7 @@ Include the feature HEAD SHA.
 - [ ] Project-owned browser E2E suite run for every required project; commands, versions and artefacts recorded
 - [ ] First-run failures preserved; retry-only passes reported as flaky findings
 - [ ] Tests themselves probed by breaking the code on purpose
-- [ ] Browser walkthrough done for the e2e and manual criteria, console and failed requests inspected, with the environment's own browser where it has one
+- [ ] Browser walkthrough done for the e2e and manual criteria, console and failed requests inspected
 - [ ] Empty, loading, error states, exact texts, formats, required viewports, accessibility semantics and keyboard path checked
 - [ ] Every edge case from the spec worked, plus boundaries, repetition and wrong order
 - [ ] Migration run against a database that already had data; existing rows checked; reversibility exercised where required

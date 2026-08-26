@@ -65,9 +65,8 @@ allocate elsewhere and correct the document - never means stop what is running.
 
 **Claim it and branch, like any other feature.** Set owner and status `In Progress`
 on `PROJ-1` in `features/INDEX.md` in one edit, then work on
-`feature/PROJ-1-scaffold` in its own worktree - inside Orca (`ORCA_WORKTREE_ID`
-set, `orca` on the `PATH`) created through the `orca-cli` skill, otherwise plain
-git. The foundation is the one change that
+`feature/PROJ-1-scaffold` in its own worktree - created with the harness's
+worktree tooling if it has any, otherwise plain git. The foundation is the one change that
 every later feature inherits without reading it; it does not get to be the one that
 lands on the main branch unreviewed.
 

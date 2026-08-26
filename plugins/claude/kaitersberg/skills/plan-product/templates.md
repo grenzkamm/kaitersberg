@@ -437,8 +437,7 @@ where it stops. Whoever set it up knows the path; a later session cannot guess i
 Say that restarting resumes the persisted stage, and name the explicit state-reset
 and manual import-stage controls supplied by the framework.
 
-Name how to start it so it outlives the window that started it - `tmux new -d`,
-or `orca terminal create --worktree … --command …` where Orca runs. A run takes
+Name how to start it so it outlives the window that started it - `tmux new -d`. A run takes
 hours, and an agent that starts it from a chat session takes it down again when
 that session ends, with the stage in flight uncommitted in the worktree.>
 

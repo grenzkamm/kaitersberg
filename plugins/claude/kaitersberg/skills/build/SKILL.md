@@ -154,17 +154,8 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
    remote. On findings or integration, reuse the existing claim; do not manufacture
    another board commit.
 3. On a **first build**, create the worktree. On later modes, locate and reuse the
-   branch and worktree recorded on the board. Detect the workspace environment
-   before creation, because some
-   own their worktrees and a raw `git worktree` behind their back leaves them with a
-   directory they do not know about:
-
-   | Environment | Detected by | Use |
-   |---|---|---|
-   | Orca | `ORCA_WORKTREE_ID` is set and `orca` is on the `PATH` | the `orca-cli` skill - it creates, lists and removes Orca worktrees, and it is also what gives `/qa` a browser |
-   | anything else | neither of those | the harness's own worktree tooling if it has any, otherwise plain git |
-
-   Plain git, when nothing else applies:
+   branch and worktree recorded on the board. Use the harness's own worktree
+   tooling if it has any, otherwise plain git:
    ```
    git worktree add .worktrees/PROJ-x-<short-name> -b feature/PROJ-x-<short-name>
    ```
