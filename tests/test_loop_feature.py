@@ -420,7 +420,14 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(self.state()["stage"], "complete")
 
     def test_bug_2_hanging_notifier_is_bounded_without_timeout_binary(self) -> None:
-        self.notifier.write_text("#!/bin/sh\nsleep 2\n", encoding="utf-8")
+        self.notifier.write_text(
+            "#!/bin/sh\n"
+            "trap 'exit 0' TERM\n"
+            "python3 -c 'import signal, time; "
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(2)' &\n"
+            "wait\n",
+            encoding="utf-8",
+        )
         self.notifier.chmod(0o755)
 
         result = self.run_loop(
