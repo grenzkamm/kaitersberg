@@ -85,11 +85,7 @@ plugin manifests are maintained files.
 The Codex port exists and is generated (below). Keep harness-specific mechanics
 **named and few**: the
 skill location, the frontmatter, the invocation, the context file, sub-agent
-dispatch, the browser tools, the fresh-session requirement. One more axis is
-detected at runtime rather than ported: the **workspace environment** (today only
-Orca, by `ORCA_WORKTREE_ID`), which owns worktrees and a browser. It is a branch
-inside a skill, never a second version of one - a fork per environment is how a
-skill set stops being one skill set. Everything else - the
+dispatch, the browser tools, the fresh-session requirement. Everything else - the
 phases, the rules and their reasons, the skeletons, the checklists - stays
 harness-neutral prose, and that is what makes a port cheap.
 

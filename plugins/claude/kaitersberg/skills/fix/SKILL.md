@@ -155,9 +155,8 @@ next person to read this learns more from the ranking than from the fix.
 
 ## Phase 3 - Test, then fix
 
-1. Own worktree and branch: `fix/BUG-n-<short-name>`. Inside Orca
-   (`ORCA_WORKTREE_ID` set, `orca` on the `PATH`) create it through the `orca-cli`
-   skill so the app owns it; otherwise plain git.
+1. Own worktree and branch: `fix/BUG-n-<short-name>`, created with the harness's
+   worktree tooling if it has any, otherwise plain git.
 2. Write the regression test from the minimised reproduction, named with the bug ID,
    **at a place where it exercises the real pattern that caused it**. A test one
    level too shallow - a single caller where the bug needed two, a unit test that

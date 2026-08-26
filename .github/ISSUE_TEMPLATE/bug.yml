@@ -62,7 +62,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Harness and version, operating system, and relevant workspace environment such as Orca or Buzz.
+      description: Harness and version, operating system, and relevant workspace environment such as Buzz.
     validations:
       required: true
 

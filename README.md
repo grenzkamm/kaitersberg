@@ -480,9 +480,7 @@ features/PROJ-x-<name>/          One folder per feature
   evidence/                      Bounded build-gate evidence plus QA screenshots,
                                  recordings and captured responses
 bugs/INDEX.md · bugs/BUG-n-*.md  The short path
-.worktrees/PROJ-x-<name>/        One worktree per feature being built - unless a
-                                 workspace environment owns worktrees, which then
-                                 keeps them in its own place
+.worktrees/PROJ-x-<name>/        One worktree per feature being built
 ```
 
 ## All fifteen skills
@@ -536,17 +534,6 @@ knows exactly what it has to replace:
 | `claude-in-chrome` tools in `/qa` | The browser walkthrough | Codex Browser with Computer Use (`@Browser`); Developer mode/full CDP for console, network, DOM and styles |
 | Fresh-session requirement in `/review` | An agent with no memory of the build | Whatever produces a reviewer that did not build it |
 | Worktree tooling in `/build` | Isolation per feature | Plain `git worktree` works everywhere |
-
-Independent of the harness, the skills detect one **workspace environment**, because
-it owns things they would otherwise create behind its back:
-
-| Environment | Detected by | What the skills use instead |
-|---|---|---|
-| [Orca](https://www.onorca.dev) | `ORCA_WORKTREE_ID` set and `orca` on the `PATH` | the `orca-cli` skill for worktrees in `/build`, `/fix`, `/scaffold` and `/pr`, and Orca's own browser for the `/qa` walkthrough |
-
-Nothing else changes: the phases, the rules and the reports are the same. Whatever
-creates a worktree also removes it - mixing the two mechanisms leaves half a
-workspace behind.
 
 The rest - the discipline that a test must be seen failing, that a batch needs
 disjoint write sets, that a design is approved before tasks are cut, that where the
@@ -682,15 +669,9 @@ next person does not solve any of it by making the core configurable.
 it would set a rung no skill wrote, which is the one thing the board must never
 show. Reading feature state back out of a tracker, for the reason in row 3. A
 setup skill whose whole job is a paragraph - `/plan-product` already writes the
-file that paragraph belongs in. And a branch in the loop that detects Orca and
-starts itself in its terminal: `/build` has one because Orca *owns* worktrees, and
-a git worktree Orca does not know about is two systems disagreeing about state.
-Nothing owns where the loop runs - a tmux session, an Orca tab and a plain
-terminal are equally right, and none of them needs the loop to know which. A
-branch that saves typing one command
-is not the same kind of thing as a branch that keeps two systems from
-contradicting each other, and treating them alike is how a harness axis becomes a
-fork.
+file that paragraph belongs in. And a branch in the loop that picks where it runs:
+nothing owns that - a tmux session and a plain terminal are equally right, and
+neither needs the loop to know which.
 
 ## Working on this repository
 

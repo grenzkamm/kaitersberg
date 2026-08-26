@@ -108,8 +108,8 @@ In this order, because each step checks the one before it:
    holds the directory you are about to remove.
 2. Update the main tree: `git checkout <target>` and pull, so the local target
    actually contains what you just merged.
-3. Remove the worktree. Inside Orca (`ORCA_WORKTREE_ID` set, `orca` on the `PATH`)
-   through the `orca-cli` skill - whatever created it removes it; otherwise
+3. Remove the worktree with whatever created it - the harness's worktree tooling
+   if that made it, otherwise
    `git worktree remove .worktrees/PROJ-x-<short-name>`. Refuses to go means
    uncommitted work: stop and report it.
 4. Delete the local branch: `git branch -d feature/PROJ-x-<short-name>`. After a
