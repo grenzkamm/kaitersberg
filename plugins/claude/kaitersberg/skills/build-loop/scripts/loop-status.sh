@@ -155,16 +155,48 @@ for state_file in "${STATES[@]}"; do
   # Fixed read-only queries only: list the worktrees, then read one HEAD.
   head_line="no feature worktree"
   worktree=""
+  feature_worktree=""
   while IFS= read -r line; do
     case $line in
       "worktree "*) worktree=${line#worktree } ;;
       "branch refs/heads/feature/$feature" | "branch refs/heads/feature/$feature-"*)
+        feature_worktree=$worktree
         head_line=$(git -C "$worktree" log -1 --format='%s (%cr)' 2>/dev/null) \
           || head_line="worktree at $worktree is unreadable"
         break
         ;;
     esac
   done < <(git worktree list --porcelain 2>/dev/null)
+
+  # Task progress from the feature's tasks.md: the build maintains the Status
+  # column in its worktree, so that copy is current while a worktree exists;
+  # before the claim and after the merge the default checkout's copy is.
+  # ponytail: trusts the bundled template's column order (status second-to-last,
+  # owner last) - a reshaped table drops the line rather than breaking the block.
+  tasks_files=()
+  [[ -n $feature_worktree ]] \
+    && tasks_files+=("$feature_worktree"/features/"$feature"-*/tasks.md)
+  tasks_files+=("$ROOT"/features/"$feature"-*/tasks.md)
+  tasks_line=""
+  for tasks_md in "${tasks_files[@]}"; do
+    [[ -f $tasks_md ]] || continue
+    tasks_line=$(awk -F'|' -v f="$feature" '
+      $2 ~ "^[[:space:]]*" f "-T[0-9]+[[:space:]]*$" {
+        total++
+        status = $(NF-2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", status)
+        id = $2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", id)
+        if (status == "Done") finished++
+        else if (status == "In Progress")
+          active = active (active == "" ? "" : ", ") id
+      }
+      END {
+        if (!total) exit
+        line = finished "/" total " done"
+        if (active != "") line = line ", in progress: " active
+        print line
+      }' "$tasks_md")
+    break
+  done
 
   printf '%s  %s\n' "$feature" "$verdict"
   if [[ $stage == complete ]]; then
@@ -179,6 +211,7 @@ for state_file in "${STATES[@]}"; do
   printf '  lock        %s\n' "$lock"
   printf '  last event  %s\n' "$last_event"
   printf '  worktree    %s\n' "$head_line"
+  [[ -z $tasks_line ]] || printf '  tasks       %s\n' "$tasks_line"
   detached_record "$feature" have_state || true
   echo
 done
