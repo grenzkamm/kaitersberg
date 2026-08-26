@@ -45,7 +45,10 @@ are the last honest reading before a customer gets it.
   another surface whose blast radius cannot be bounded.
 - **Targeted retest** after `$build`: verify every previous blocking finding, run
   the ACs and edge/adversarial probes touched by `previous_sha..HEAD`, the affected
-  automated suites, and one end-to-end smoke journey. Reuse prior passing evidence
+  automated suites, and one end-to-end smoke journey. Read from the spec only the
+  touched ACs with their example data and texts, and from the previous `qa.md` the
+  findings being verified - re-reading the whole spec every round is what makes a
+  three-round loop cost three full QA passes. Reuse prior passing evidence
   for unchanged ACs only when the report names its source SHA. A reused result is
   evidence with provenance, not a claim that it was rerun. Escalate to full when the
   delta reveals a wider effect.
@@ -217,17 +220,14 @@ Each one gets a row in the report whether it passed or not.
 Now stop being a user. Everything here is done against your own test system with
 test data, and every attempt is recorded whether it worked or not.
 
-| Probe | What you actually do |
-|---|---|
-| **Tenant isolation** | Log in as tenant A, take an ID belonging to tenant B, and address it directly - through the interface and through the API. Read, change, delete. Then check the error: does it reveal that the record exists? |
-| **Broken access control** | Call every operation as each role that must be refused, **bypassing the interface** - the button being hidden is not a protection. Then try to grant yourself a role. |
-| **Unauthenticated** | Every route and operation with no session at all. |
-| **Injection through storage** | Put markup, script and formula payloads into every free-text field, then look where those fields surface: another user's screen, the printed document, the export, the label, the email. The damage happens at the display, not the input. |
-| **Input abuse** | Wrong types, negative where positive is expected, enormous numbers, a very long string, a path where a name belongs, a file of the wrong type, a file far over the limit. |
-| **Repetition** | The same request many times over. Does the limit from the design hold at its number, what does the abuser see, and is it recorded? |
-| **Enumeration** | Do error messages and timings differ between "does not exist" and "not yours"? That difference is a directory of your customers. |
-| **Personal data leaking** | Search the logs, the audit records, the error responses and any external call for personal data that the spec did not permit there. |
-| **Client-side trust** | Take any check that happens in the browser and do the operation without it. |
+The probes are the rows of the adversarial table in
+[report-template.md](report-template.md) - one list, kept where every report
+already carries it, so the same nine probes are not maintained in two places.
+Work them one at a time. Three are lost most easily: a hidden button is not an
+access check, so bypass the interface; injected content does its damage where it
+is displayed, printed or exported, not where it is typed; and a message or timing
+that differs between "does not exist" and "not yours" is a directory of your
+customers.
 
 For each probe: what you tried, what happened, and what it means. A probe that
 failed to break anything is a result worth writing down - it is what makes the

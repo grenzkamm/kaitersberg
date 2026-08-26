@@ -70,8 +70,10 @@ With an argument, take that ID. Without, take the first feature whose folder has
   and deletion, migration rules including whether reversibility is required, the
   performance budgets, and the dependency policy this design's dependency section
   is measured against.
-- The neighbouring features' `design.md` files, if any - so the same problem is not
-  solved two different ways in the same product.
+- The `design.md` of neighbouring features that share an entity, a route or a
+  component with this spec - so the same problem is not solved two different ways.
+  Only those: reading every design on the board grows linearly with the product
+  and adds nothing for features this one never touches.
 - What is already built: `git ls-files` for the modules and screens this touches.
 
 ## Phase 2 - Decide the data

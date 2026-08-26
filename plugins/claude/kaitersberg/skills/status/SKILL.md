@@ -53,11 +53,17 @@ context.
 - `features/INDEX.md` - every row: ID, name, status, wave, dependencies, effort.
 - `docs/PRD.md` - the product name and one line of what it is for. That line is the
   only sentence on the page that is not about progress.
-- For every feature that is past `Roadmap`, its folder:
-  - `spec.md` - the scope line. One sentence, in the words of the business.
-  - `review.md` and `qa.md` - the verdict, and how many findings are still open.
-  - `design.md` - whether the approval block is filled. An empty one means the
-    feature is waiting for a person, and that person is probably reading this page.
+- The scope lines from `features/INDEX.md`'s own scope section - the page needs
+  one sentence per feature, and the board already carries it; the spec is not
+  opened for it.
+- For every feature that is past `Roadmap`, its folder - **the named sections
+  only**, because every fact this page needs sits in a known place:
+  - `review.md` and `qa.md` - the verdict and severity counts at the top. The
+    findings themselves are not this page's business.
+  - `design.md` - whether the approval block at its end is filled. An empty one
+    means the feature is waiting for a person, and that person is probably
+    reading this page.
+  - `spec.md` - only its *Open questions* table, for what was never answered.
 - `bugs/INDEX.md` if it exists - open bugs by severity. Nothing else from there.
 
 ## Phase 1 - Work out the four things worth showing
@@ -94,15 +100,11 @@ scale, the colours in light and dark, and the four sections in the order above.
 Fill it; do not redesign it. Two runs a week apart must be comparable at a glance,
 and that only works if the page looks the same.
 
-The rules the template exists to enforce, in case you are tempted:
-- **One thing per line, and the important thing is bigger.** Hierarchy comes from
-  size, weight and space, never from boxes, borders or colour blocks.
-- **Colour carries meaning only.** Grey is the default; green, orange and red mean
-  a state, and nothing on the page is coloured because it looked plain.
-- **No icon that is an emoji**, no progress ring, no chart. There is one bar, and
-  it exists because "7 of 19" is easier to feel than to read.
-- Sections with nothing in them are removed, not left with a cheerful placeholder.
-  A missing section is quieter and more honest than "Nothing to report 🎉".
+The design rules live in the template itself, stated once above its skeleton -
+restating them here would be a second copy for every run to read and for nobody
+to maintain. Two that people break anyway: sections with nothing in them are
+removed, not filled with reassurance, and nothing on the page is coloured because
+it looked plain.
 
 ## Phase 3 - Hand it over
 

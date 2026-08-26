@@ -24,10 +24,6 @@ decides it.>
 | Blocking | |
 | Note | |
 
-Only two things are blocking: the feature does not do what was approved, or it does
-something that must not happen - data loss, a hole in the isolation, personal data
-where it does not belong.
-
 ## What was expected
 <Written from the spec and the design **before** the diff was opened. Kept in the
 report so the next reader can see what the review was measured against.>

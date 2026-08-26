@@ -55,8 +55,10 @@ here can be re-run, this one cannot be un-run.
 ```
 
 1. `features/INDEX.md`: status, owner, branch.
-2. The verdicts: `review.md` and `qa.md` - or `proof.md` and `review.md` for the
-   foundation feature `PROJ-1`.
+2. The verdicts: the header block of `review.md` and `qa.md` - or of `proof.md`
+   and `review.md` for the foundation feature `PROJ-1`. The verdict and severity
+   counts sit at the top of each report; the full findings were `$build`'s and
+   `$pr`'s reading, and this decision needs only the two lines.
 3. The pull request and its checks, with the forge's own tool: `gh pr view` and
    `gh pr checks` on GitHub, `tea pr` on Forgejo or Gitea, whatever the remote
    actually is. No tool for this forge means the user merges in the web interface

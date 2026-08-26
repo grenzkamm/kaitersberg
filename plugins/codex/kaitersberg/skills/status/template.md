@@ -14,7 +14,9 @@ being swallowed silently by the browser.
 the page is one column of text at reading width, and everything on it is either a
 fact or a label for a fact. Hierarchy is size, weight and empty space; there are no
 boxes drawn around things that are already separated by air. Colour appears only
-where it means a state - grey is the resting position. Nothing animates except a
+where it means a state - grey is the resting position. There is one bar and no
+other chart, no progress ring, and no icon that is an emoji - the bar exists
+because "7 of 19" is easier to feel than to read. Nothing animates except a
 single settle on load, and that is turned off for anyone who asked for less motion.
 
 ---

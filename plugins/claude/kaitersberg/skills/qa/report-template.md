@@ -84,8 +84,8 @@ went red. A test that stayed green is a finding.>
 ## Adversarial pass
 | Probe | What was tried | Result | Assessment |
 |---|---|---|---|
-| Tenant isolation | Tenant A read/changed/deleted an ID of tenant B, interface and API | | |
-| Broken access control | Every operation as each refused role, bypassing the interface | | |
+| Tenant isolation | Tenant A read/changed/deleted an ID of tenant B, interface and API; did the error reveal the record exists | | |
+| Broken access control | Every operation as each refused role, bypassing the interface, plus a try to grant oneself a role | | |
 | Unauthenticated | Every route with no session | | |
 | Injection through storage | Payloads in free text, then viewed in <screen, print, export, mail> | | |
 | Input abuse | Wrong types, negatives, huge values, long strings, wrong and oversized files | | |

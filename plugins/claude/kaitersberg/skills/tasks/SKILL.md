@@ -55,8 +55,10 @@ approved `design.md` but no `tasks.md`.
 
 ## Phase 1 - Read and inventory
 
-Read `spec.md` and `design.md` in full, plus `docs/architecture.md` if it exists
-and the plan documents the design refers to.
+Read `spec.md` and `design.md` in full, plus `docs/architecture.md` if it exists.
+Open a plan document only where the design explicitly points at it for a detail -
+the design already restates every plan answer it applied, and reading the plan
+behind it again is a second full read that yields no new fact.
 
 Write yourself two lists before cutting anything:
 - **Every `AC-n`** from the spec, with its test level.
