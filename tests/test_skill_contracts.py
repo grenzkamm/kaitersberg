@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 STATUS_TEMPLATE = ROOT / ".claude" / "skills" / "status" / "template.md"
 SKILLS = ROOT / ".claude" / "skills"
-LOOP = ROOT / "scripts" / "loop-feature.sh"
+README = ROOT / "README.md"
 
 
 class SkillContractTest(unittest.TestCase):
@@ -47,10 +47,16 @@ class SkillContractTest(unittest.TestCase):
             self.assertIn("evidence/report-history/", skill)
             self.assertIn("current snapshot", skill)
 
-        runner = LOOP.read_text(encoding="utf-8")
-        self.assertIn(
-            "Write(features/**/evidence/report-history/*.md)", runner
-        )
+    def test_report_history_names_distinguish_rounds_at_the_same_sha(self) -> None:
+        for name in ("review", "qa"):
+            skill = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("<run-id>-r<round>", skill)
+            self.assertIn("never overwrite", skill)
+
+    def test_readme_describes_post_test_reports_and_rate_limit_event(self) -> None:
+        readme = README.read_text(encoding="utf-8")
+        self.assertIn("current `review.md` and `qa.md` snapshots", readme)
+        self.assertIn("`rate_limited` (with Claude's `resetsAt`)", readme)
 
     def test_delivery_skills_scope_board_reads(self) -> None:
         expected = {

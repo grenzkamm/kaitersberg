@@ -43,8 +43,12 @@ that sub-agent must be a fresh one, not a fork carrying the build context.
   board copy carried by a feature branch.
 - **`review.md` is one bounded current snapshot, not an accumulating transcript.**
   Before replacing it, copy the previous snapshot verbatim to
-  `evidence/report-history/review-<previous-reviewed-sha>.md`; never append an old
-  round to the current file. The current report carries exactly one
+  `evidence/report-history/review-<previous-reviewed-sha>-<run-id>-r<round>.md` in
+  an unattended run. Outside the runner, use
+  `review-<previous-reviewed-sha>-manual-r<next-free-number>.md`. Treat the name as
+  create-only: never overwrite an archive; advance the final number if the target
+  already exists. Never append an old round to the current file. The current report
+  carries exactly one
   `kaitersberg-report: review` marker and one `kaitersberg-subject-sha:` marker.
   Keep it at or below 64 KiB by linking bounded evidence and archived rounds rather
   than embedding them. History remains inspectable without making every later
@@ -179,7 +183,7 @@ the next finding land.
 
 ## Phase 3 - Report
 
-Archive any previous current snapshot under `evidence/report-history/`, then replace
+Archive any previous current snapshot under the collision-free name above, then replace
 `features/PROJ-x-<name>/review.md` in the feature worktree and give the same current
 content back in the message. Record full or delta mode, the reviewed SHA, the
 previous reviewed SHA when any, and why the chosen scope is sufficient. Verify the
@@ -229,6 +233,6 @@ feature HEAD SHA. These are not aliases for generic findings.
 - [ ] Suspicions proven before being reported
 - [ ] Blind spots named
 - [ ] Board read from the default checkout and left on `In Review` throughout delivery feedback
-- [ ] Previous review snapshot archived verbatim under `evidence/report-history/`; `review.md` replaced, not appended
+- [ ] Previous review snapshot archived verbatim under its run-and-round name without overwriting history; `review.md` replaced, not appended
 - [ ] Current review is at most 64 KiB and has exactly one report marker and one subject-SHA marker
 - [ ] Nothing edited beyond the review file and the index status, nothing committed of the feature's code

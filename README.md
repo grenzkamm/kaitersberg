@@ -298,9 +298,11 @@ file-specific allowlist that can enforce this boundary outside the model.
 Build gates also keep their raw output out of the agent context and the feature
 worktree: every command gets a unique temporary log. Only bounded final or failing
 extracts are committed under the feature's `evidence/gates/` directory. Schema-v2
-`verification.json` records the code `tested_sha`; the only permitted descendant is
-the commit containing that manifest and its evidence. QA can therefore reuse a
-green gate without treating a later product change as already tested.
+`verification.json` records the code `tested_sha`; any permitted descendant may
+change only paths declared by its `allowed_post_test_paths`: the manifest, bounded
+evidence, and the current `review.md` and `qa.md` snapshots. QA can therefore
+reuse a green gate without treating a later product, configuration or plan change
+as already tested.
 
 The first run creates a state file and an atomic lock below Git's common directory.
 A later invocation resumes that state. `START_STAGE=review` imports an already
@@ -321,7 +323,8 @@ next to a live loop. `LOOP_NOTIFY=<executable>` makes the loop announce itself:
 the command runs as `<notifier> <feature> <event> <detail>` for `stage_started`
 and `stage_done` (with `build round 1/3`), `decision_needed` (with the reason the
 plan is silent), `rounds_exhausted` (with the stage that never went green) and
-`finished` (`PR opened`, or `stopped before PR (PR=0)`). The loop knows no
+`rate_limited` (with Claude's `resetsAt`) or `finished` (`PR opened`, or
+`stopped before PR (PR=0)`). The loop knows no
 vendor; `scripts/notify-ntfy.sh` is a worked example that posts each event to an
 ntfy topic, optional and never a default. A failing, missing or hanging notifier
 is reported and ignored - notification is never load-bearing.

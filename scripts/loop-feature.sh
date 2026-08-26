@@ -232,7 +232,7 @@ WRITE=(--permission-mode acceptEdits --allowedTools "Bash,Read,Edit,Write,Glob,G
 # apply and shell aliases all fit Bash(git *). The helper exposes fixed query shapes,
 # disables external diff commands and receives no arbitrary git options. Review's
 # parallel lanes get Agent and inherit the same limits.
-READ=(--permission-mode dontAsk --allowedTools "Read,Glob,Grep,Bash($REVIEW_GIT_HELPER *),Bash(mkdir -p features/**/evidence/report-history),Agent,Edit(features/**/review.md),Write(features/**/evidence/report-history/*.md)")
+READ=(--permission-mode dontAsk --allowedTools "Read,Glob,Grep,Bash($REVIEW_GIT_HELPER *),Bash(mkdir -p $D/evidence/report-history),Agent,Edit($D/review.md),Write($D/evidence/report-history/*.md)")
 
 claude_run() {
   # Claude reports rejected capacity in-band and may then leave the process alive.
@@ -259,18 +259,28 @@ def seconds(value: str) -> float:
 
 
 def stop_group(process: subprocess.Popen[bytes]) -> None:
+    pgid = process.pid
     try:
-        os.killpg(process.pid, signal.SIGTERM)
+        os.killpg(pgid, signal.SIGTERM)
     except ProcessLookupError:
         return
+
+    deadline = time.monotonic() + 1
+    while time.monotonic() < deadline:
+        process.poll()
+        try:
+            os.killpg(pgid, 0)
+        except ProcessLookupError:
+            break
+        except PermissionError:
+            pass
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(0.05, remaining))
+
     try:
-        process.wait(timeout=1)
-        return
-    except subprocess.TimeoutExpired:
-        pass
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
         pass
     process.wait()
 
@@ -362,7 +372,7 @@ stage_prompt() {
   else
     invocation="/$SKILL_NS:$skill $F"
   fi
-  printf '%s\n%s' "$invocation" "${NOTE}This is unattended run $RUN_ID. Read lifecycle state from the default
+  printf '%s\n%s' "$invocation" "${NOTE}This is unattended run $RUN_ID, stage round $ROUND. Read lifecycle state from the default
 checkout and feature artifacts from the feature worktree. Use the skill's full or
 delta/retest mode for the current HEAD. Return exactly one structured outcome from
 the supplied schema; include the feature HEAD as head_sha. Use incomplete only when

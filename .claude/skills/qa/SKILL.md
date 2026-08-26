@@ -37,8 +37,12 @@ are the last honest reading before a customer gets it.
   from the default checkout. Run and write the current `qa.md` and evidence manifest
   in the feature worktree. A feature branch's copy of the board is not current.
 - **`qa.md` is one bounded current snapshot.** Before replacing it, copy the
-  previous snapshot verbatim to `evidence/report-history/qa-<previous-tested-sha>.md`.
-  Never append old rounds. The current report carries exactly one
+  previous snapshot verbatim to
+  `evidence/report-history/qa-<previous-tested-sha>-<run-id>-r<round>.md` in an
+  unattended run. Outside the runner, use
+  `qa-<previous-tested-sha>-manual-r<next-free-number>.md`. Treat the name as
+  create-only: never overwrite an archive; advance the final number if the target
+  already exists. Never append old rounds. The current report carries exactly one
   `kaitersberg-report: qa` marker and one `kaitersberg-subject-sha:` marker and is
   at most 128 KiB; link bounded evidence and archived rounds instead of embedding
   them. History stays inspectable without charging every later stage to read it.
@@ -220,7 +224,7 @@ report trustworthy.
 
 ## Phase 6 - Report and verdict
 
-Archive any previous current snapshot under `evidence/report-history/`, then
+Archive any previous current snapshot under the collision-free name above, then
 replace `features/PROJ-x-<name>/qa.md` from
 [report-template.md](report-template.md), and give the summary in the message.
 Verify the two snapshot markers occur exactly once and the current file is no
@@ -284,6 +288,6 @@ Include the feature HEAD SHA.
 - [ ] What could not be tested is named
 - [ ] Report in the feature folder, evidence beside it under `evidence/`
 - [ ] Board read from the default checkout and left on `In Review` throughout delivery feedback
-- [ ] Previous QA snapshot archived verbatim under `evidence/report-history/`; `qa.md` replaced, not appended
+- [ ] Previous QA snapshot archived verbatim under its run-and-round name without overwriting history; `qa.md` replaced, not appended
 - [ ] Current QA report is at most 128 KiB and has exactly one report marker and one subject-SHA marker
 - [ ] Nothing fixed, nothing committed beyond the report and its evidence

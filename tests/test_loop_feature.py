@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -19,6 +21,8 @@ FAKE_CLAUDE = r'''#!/usr/bin/env python3
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import time
 
 queue = Path(os.environ["FAKE_CLAUDE_QUEUE"])
@@ -27,7 +31,29 @@ outcome = items.pop(0) if items else ""
 queue.write_text("\n".join(items) + ("\n" if items else ""), encoding="utf-8")
 calls = Path(os.environ["FAKE_CLAUDE_CALLS"])
 calls.write_text(calls.read_text(encoding="utf-8") + outcome + "\n", encoding="utf-8")
+with Path(os.environ["FAKE_CLAUDE_ARGS"]).open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps(sys.argv[1:]) + "\n")
 if outcome == "rate_limited":
+    child_pid_path = os.environ.get("FAKE_RATE_LIMIT_CHILD_PID")
+    if child_pid_path:
+        child_ready_path = os.environ["FAKE_RATE_LIMIT_CHILD_READY"]
+        child = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import signal, sys, time; "
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                "open(sys.argv[1], 'w').write('ready'); "
+                "time.sleep(60)",
+                child_ready_path,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        Path(child_pid_path).write_text(str(child.pid), encoding="utf-8")
+        deadline = time.monotonic() + 2
+        while not Path(child_ready_path).exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
     print(json.dumps({
         "type": "rate_limit_event",
         "session_id": "session-rate-limited",
@@ -134,6 +160,8 @@ class FeatureLoopTest(unittest.TestCase):
         self.queue = self.root / "queue"
         self.calls = self.root / "calls"
         self.calls.write_text("", encoding="utf-8")
+        self.claude_args = self.root / "claude-args"
+        self.claude_args.write_text("", encoding="utf-8")
         self.codex_calls = self.root / "codex-calls"
         self.codex_calls.write_text("", encoding="utf-8")
         self.hook_log = self.root / "hook-log"
@@ -159,6 +187,7 @@ class FeatureLoopTest(unittest.TestCase):
             PATH=f"{self.bin}:{env['PATH']}",
             FAKE_CLAUDE_QUEUE=str(self.queue),
             FAKE_CLAUDE_CALLS=str(self.calls),
+            FAKE_CLAUDE_ARGS=str(self.claude_args),
             FAKE_CODEX_QUEUE=str(self.queue),
             FAKE_CODEX_CALLS=str(self.codex_calls),
             INFRA_RETRIES="0",
@@ -207,6 +236,14 @@ class FeatureLoopTest(unittest.TestCase):
 
     def state(self) -> dict:
         return json.loads(self.state_path().read_text(encoding="utf-8"))
+
+    @staticmethod
+    def process_exists(pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
 
     def hook_env(self, **extra: str) -> dict[str, str]:
         return {
@@ -338,6 +375,50 @@ class FeatureLoopTest(unittest.TestCase):
         )
         self.assertEqual(event["stage"], "build")
         self.assertEqual(event["resets_at"], 1787756400)
+
+    def test_rejected_rate_limit_kills_term_resistant_descendants(self) -> None:
+        child_pid_path = self.root / "rate-limit-child.pid"
+        child_ready_path = self.root / "rate-limit-child.ready"
+        child_pid: int | None = None
+        try:
+            result = self.run_loop(
+                ["rate_limited"],
+                timeout=4,
+                FAKE_RATE_LIMIT_SLEEP="10",
+                FAKE_RATE_LIMIT_CHILD_PID=str(child_pid_path),
+                FAKE_RATE_LIMIT_CHILD_READY=str(child_ready_path),
+            )
+            self.assertEqual(result.returncode, 3, result.stderr)
+            child_pid = int(child_pid_path.read_text(encoding="utf-8"))
+            deadline = time.monotonic() + 1
+            while self.process_exists(child_pid) and time.monotonic() < deadline:
+                time.sleep(0.02)
+            self.assertFalse(
+                self.process_exists(child_pid),
+                "TERM-resistant Claude descendant survived the rate-limit stop",
+            )
+        finally:
+            if child_pid is not None and self.process_exists(child_pid):
+                os.kill(child_pid, signal.SIGKILL)
+
+    def test_review_permissions_are_scoped_to_the_resolved_feature(self) -> None:
+        result = self.run_loop(["complete", "blocked"])
+        self.assertEqual(result.returncode, 2, result.stderr)
+        invocations = [
+            json.loads(line)
+            for line in self.claude_args.read_text(encoding="utf-8").splitlines()
+        ]
+        review_args = invocations[1]
+        allowed = review_args[review_args.index("--allowedTools") + 1]
+        self.assertIn(
+            "Bash(mkdir -p features/PROJ-7-example/evidence/report-history)",
+            allowed,
+        )
+        self.assertIn("Edit(features/PROJ-7-example/review.md)", allowed)
+        self.assertIn(
+            "Write(features/PROJ-7-example/evidence/report-history/*.md)", allowed
+        )
+        self.assertNotIn("features/**", allowed)
 
     def test_ci_failure_returns_through_build(self) -> None:
         result = self.run_loop(
