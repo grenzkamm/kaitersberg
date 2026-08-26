@@ -16,6 +16,7 @@ not by editing the generated file.
 """
 
 import re
+import stat
 import sys
 from pathlib import Path
 
@@ -24,7 +25,7 @@ SRC = ROOT / ".claude" / "skills"
 DST = ROOT / ".agents" / "skills"
 CLAUDE_PLUGIN_DST = ROOT / "plugins" / "claude" / "kaitersberg" / "skills"
 CODEX_PLUGIN_DST = ROOT / "plugins" / "codex" / "kaitersberg" / "skills"
-VERBATIM_ASSET_SUFFIXES = {".json"}
+VERBATIM_ASSET_SUFFIXES = {".json", ".py", ".sh"}
 
 # Frontmatter keys: kept, and dropped because Codex has no equivalent.
 KEEP = {"name", "description"}
@@ -55,6 +56,17 @@ Then:"""
 
 # Prose replacements, applied in order. Plain strings, not regexes.
 PROSE = [
+    (
+        "Set `LOOP` to\n"
+        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh\"` and `STATUS`\n"
+        "  to `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-status.sh\"`, and set\n"
+        "  `DETACH` to\n"
+        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-detach.sh\"`.",
+        "Resolve the exact directory containing this loaded `SKILL.md` from Codex's\n"
+        "  skill catalog. Set `LOOP` to its `scripts/loop-feature.sh` and `STATUS` to\n"
+        "  its `scripts/loop-status.sh`, and set `DETACH` to its\n"
+        "  `scripts/loop-detach.sh`.",
+    ),
     ("CLAUDE.md", "AGENTS.md"),
     (".claude/skills/", ".agents/skills/"),
     ("AskUserQuestion", "a multiple-choice question"),
@@ -138,24 +150,31 @@ def main() -> int:
     stale = []
 
     for name in skills:
+        files = [
+            p
+            for p in (SRC / name).rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts
+        ]
         others = [
-            p for p in (SRC / name).rglob("*")
-            if p.is_file() and p.suffix not in VERBATIM_ASSET_SUFFIXES | {".md"}
+            p
+            for p in files
+            if p.suffix not in VERBATIM_ASSET_SUFFIXES | {".md"}
         ]
         if others:
             sys.exit(f"{name}: the skill has unsupported assets "
                      + ", ".join(p.name for p in others) + " - decide here how those port")
-        for src in sorted(p for p in (SRC / name).rglob("*") if p.is_file()):
+        for src in sorted(files):
             rel = src.relative_to(SRC)
             source = src.read_bytes()
+            source_mode = stat.S_IMODE(src.stat().st_mode)
             if src.suffix == ".md":
                 source_text = source.decode()
                 codex = transform(
                     source_text, name, skills, src.name == "SKILL.md"
                 ).encode()
             else:
-                # Data templates have no harness syntax. Copy them byte-for-byte
-                # so a skill can point at a machine-readable output contract.
+                # Data templates and runtime assets have no harness syntax. Copy
+                # them byte-for-byte and preserve their mode below.
                 codex = source
             outputs = (
                 (DST / rel, codex),
@@ -164,11 +183,16 @@ def main() -> int:
             )
             for dst, output in outputs:
                 if check:
-                    if not dst.exists() or dst.read_bytes() != output:
+                    if (
+                        not dst.exists()
+                        or dst.read_bytes() != output
+                        or stat.S_IMODE(dst.stat().st_mode) != source_mode
+                    ):
                         stale.append(str(dst.relative_to(ROOT)))
                 else:
                     dst.parent.mkdir(parents=True, exist_ok=True)
                     dst.write_bytes(output)
+                    dst.chmod(source_mode)
 
     destinations = (DST, CLAUDE_PLUGIN_DST, CODEX_PLUGIN_DST)
     extra = [

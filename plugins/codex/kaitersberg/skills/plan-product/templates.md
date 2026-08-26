@@ -432,14 +432,20 @@ review, test report, pull request body, evidence.
 <Fill this in if this repository is built unattended, or delete it with the line
 "built one skill at a time" - a heading nobody filled reads as "nobody looked".
 
-Name the command that runs build, review, qa and optionally pr as separate sessions, and say
-where it stops. Whoever set it up knows the path; a later session cannot guess it.
-Say that restarting resumes the persisted stage, and name the explicit state-reset
-and manual import-stage controls supplied by the framework.
+Name `/kaitersberg:build-loop PROJ-x` for Claude and
+`$kaitersberg:build-loop PROJ-x` for Codex as the commands that run build, review,
+qa and optionally pr as separate sessions, and say where the loop stops. The skill
+resolves the runner inside its installed plugin; this product repository must not
+record a framework checkout or plugin-cache path. Say that restarting resumes the
+persisted stage, and name the explicit state-reset and manual import-stage controls
+supplied by the framework.
 
-Name how to start it so it outlives the window that started it - `tmux new -d`. A run takes
-hours, and an agent that starts it from a chat session takes it down again when
-that session ends, with the stage in flight uncommitted in the worktree.>
+Name its `detached`, `status` and `follow` modes. A detached handoff reports the
+tmux session plus the state, event-log, durable launcher-log and exit-code paths;
+tmux accepting the session leaves current state unknown and is not a completed
+delivery. A run takes hours, and an agent that starts it attached to a chat session
+takes it down again when that session ends, with the stage in flight uncommitted in
+the worktree.>
 
 ## Rules
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is

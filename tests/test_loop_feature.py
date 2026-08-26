@@ -3,15 +3,25 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
 LOOP = ROOT / "scripts" / "loop-feature.sh"
+BUNDLED_LOOP = (
+    ROOT
+    / ".claude"
+    / "skills"
+    / "build-loop"
+    / "scripts"
+    / "loop-feature.sh"
+)
 BUILD_SKILL = ROOT / ".claude" / "skills" / "build" / "SKILL.md"
 
 
@@ -19,6 +29,9 @@ FAKE_CLAUDE = r'''#!/usr/bin/env python3
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
+import time
 
 queue = Path(os.environ["FAKE_CLAUDE_QUEUE"])
 items = queue.read_text(encoding="utf-8").splitlines()
@@ -26,6 +39,36 @@ outcome = items.pop(0) if items else ""
 queue.write_text("\n".join(items) + ("\n" if items else ""), encoding="utf-8")
 calls = Path(os.environ["FAKE_CLAUDE_CALLS"])
 calls.write_text(calls.read_text(encoding="utf-8") + outcome + "\n", encoding="utf-8")
+with Path(os.environ["FAKE_CLAUDE_ARGS"]).open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps(sys.argv[1:]) + "\n")
+if outcome == "rate_limited":
+    child_pid_path = os.environ.get("FAKE_RATE_LIMIT_CHILD_PID")
+    if child_pid_path:
+        child_ready_path = os.environ["FAKE_RATE_LIMIT_CHILD_READY"]
+        child = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import signal, sys, time; "
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                "open(sys.argv[1], 'w').write('ready'); "
+                "time.sleep(60)",
+                child_ready_path,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        Path(child_pid_path).write_text(str(child.pid), encoding="utf-8")
+        deadline = time.monotonic() + 2
+        while not Path(child_ready_path).exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+    print(json.dumps({
+        "type": "rate_limit_event",
+        "session_id": "session-rate-limited",
+        "rate_limit_info": {"status": "rejected", "resetsAt": 1787756400},
+    }), flush=True)
+    time.sleep(float(os.environ.get("FAKE_RATE_LIMIT_SLEEP", "10")))
+    raise SystemExit(99)
 structured = {"outcome": outcome, "head_sha": "abc1234"} if outcome else None
 if structured and outcome == "blocked":
     structured["reason"] = "which provider owns login"
@@ -125,6 +168,8 @@ class FeatureLoopTest(unittest.TestCase):
         self.queue = self.root / "queue"
         self.calls = self.root / "calls"
         self.calls.write_text("", encoding="utf-8")
+        self.claude_args = self.root / "claude-args"
+        self.claude_args.write_text("", encoding="utf-8")
         self.codex_calls = self.root / "codex-calls"
         self.codex_calls.write_text("", encoding="utf-8")
         self.hook_log = self.root / "hook-log"
@@ -142,7 +187,11 @@ class FeatureLoopTest(unittest.TestCase):
         self.temporary.cleanup()
 
     def run_loop(
-        self, outcomes: list[str], timeout: float | None = None, **extra: str
+        self,
+        outcomes: list[str],
+        timeout: float | None = None,
+        loop_path: Path = LOOP,
+        **extra: str,
     ) -> subprocess.CompletedProcess[str]:
         self.queue.write_text("\n".join(outcomes) + "\n", encoding="utf-8")
         env = self.clean_env.copy()
@@ -150,6 +199,7 @@ class FeatureLoopTest(unittest.TestCase):
             PATH=f"{self.bin}:{env['PATH']}",
             FAKE_CLAUDE_QUEUE=str(self.queue),
             FAKE_CLAUDE_CALLS=str(self.calls),
+            FAKE_CLAUDE_ARGS=str(self.claude_args),
             FAKE_CODEX_QUEUE=str(self.queue),
             FAKE_CODEX_CALLS=str(self.codex_calls),
             INFRA_RETRIES="0",
@@ -157,7 +207,7 @@ class FeatureLoopTest(unittest.TestCase):
         )
         env.update(extra)
         return subprocess.run(
-            ["bash", str(LOOP), "PROJ-7"],
+            ["bash", str(loop_path), "PROJ-7"],
             cwd=self.repo,
             env=env,
             text=True,
@@ -199,6 +249,14 @@ class FeatureLoopTest(unittest.TestCase):
     def state(self) -> dict:
         return json.loads(self.state_path().read_text(encoding="utf-8"))
 
+    @staticmethod
+    def process_exists(pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
     def hook_env(self, **extra: str) -> dict[str, str]:
         return {
             "STAGE_DONE_CMD": str(self.hook),
@@ -215,6 +273,21 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(self.state()["stage"], "complete")
         self.assertEqual(len(self.calls.read_text(encoding="utf-8").splitlines()), 4)
         self.assertFalse((self.state_path().parent / "PROJ-7.pid").exists())
+        self.assertIn(f"state: {self.state_path().resolve()}", result.stdout)
+        self.assertIn(
+            "events: "
+            f"{(self.repo / 'features' / 'PROJ-7-example' / 'loop.log').resolve()}",
+            result.stdout,
+        )
+
+    def test_bundled_runner_operates_from_a_foreign_product_repo(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready", "opened"],
+            loop_path=BUNDLED_LOOP,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state()["stage"], "complete")
 
     def test_codex_runner_drives_each_stage_with_codex_exec(self) -> None:
         result = self.run_loop(
@@ -258,7 +331,7 @@ class FeatureLoopTest(unittest.TestCase):
 
     def test_build_skill_redirects_whole_delivery_to_the_runner(self) -> None:
         instructions = BUILD_SKILL.read_text(encoding="utf-8")
-        self.assertIn("scripts/loop-feature.sh", instructions)
+        self.assertIn("/build-loop PROJ-x", instructions)
         self.assertIn("Never synthesise the delivery loop inside this session", instructions)
 
     def test_changes_required_returns_to_build(self) -> None:
@@ -297,6 +370,82 @@ class FeatureLoopTest(unittest.TestCase):
             ["complete", "approved", "production_ready", "opened"]
         )
         self.assertEqual(resumed.returncode, 0, resumed.stderr)
+
+    def test_rejected_rate_limit_stops_without_infrastructure_retries(self) -> None:
+        result = self.run_loop(
+            ["rate_limited"],
+            timeout=3,
+            INFRA_RETRIES="3",
+            FAKE_RATE_LIMIT_SLEEP="10",
+            **self.notify_env(),
+        )
+
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertEqual(self.state()["stage"], "build")
+        self.assertEqual(self.state()["attempts"]["build"], 0)
+        self.assertEqual(
+            self.calls.read_text(encoding="utf-8").splitlines(), ["rate_limited"]
+        )
+        self.assertIn("resetsAt=1787756400", result.stderr)
+        self.assertEqual(
+            self.notifications()[-1],
+            ["PROJ-7", "rate_limited", "build rejected; resetsAt=1787756400"],
+        )
+        events = [
+            json.loads(line)
+            for line in (self.repo / "features" / "PROJ-7-example" / "loop.log")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        event = next(
+            item for item in events if item.get("type") == "kaitersberg_rate_limit"
+        )
+        self.assertEqual(event["stage"], "build")
+        self.assertEqual(event["resets_at"], 1787756400)
+
+    def test_rejected_rate_limit_kills_term_resistant_descendants(self) -> None:
+        child_pid_path = self.root / "rate-limit-child.pid"
+        child_ready_path = self.root / "rate-limit-child.ready"
+        child_pid: int | None = None
+        try:
+            result = self.run_loop(
+                ["rate_limited"],
+                timeout=4,
+                FAKE_RATE_LIMIT_SLEEP="10",
+                FAKE_RATE_LIMIT_CHILD_PID=str(child_pid_path),
+                FAKE_RATE_LIMIT_CHILD_READY=str(child_ready_path),
+            )
+            self.assertEqual(result.returncode, 3, result.stderr)
+            child_pid = int(child_pid_path.read_text(encoding="utf-8"))
+            deadline = time.monotonic() + 1
+            while self.process_exists(child_pid) and time.monotonic() < deadline:
+                time.sleep(0.02)
+            self.assertFalse(
+                self.process_exists(child_pid),
+                "TERM-resistant Claude descendant survived the rate-limit stop",
+            )
+        finally:
+            if child_pid is not None and self.process_exists(child_pid):
+                os.kill(child_pid, signal.SIGKILL)
+
+    def test_review_permissions_are_scoped_to_the_resolved_feature(self) -> None:
+        result = self.run_loop(["complete", "blocked"])
+        self.assertEqual(result.returncode, 2, result.stderr)
+        invocations = [
+            json.loads(line)
+            for line in self.claude_args.read_text(encoding="utf-8").splitlines()
+        ]
+        review_args = invocations[1]
+        allowed = review_args[review_args.index("--allowedTools") + 1]
+        self.assertIn(
+            "Bash(mkdir -p features/PROJ-7-example/evidence/report-history)",
+            allowed,
+        )
+        self.assertIn("Edit(features/PROJ-7-example/review.md)", allowed)
+        self.assertIn(
+            "Write(features/PROJ-7-example/evidence/report-history/*.md)", allowed
+        )
+        self.assertNotIn("features/**", allowed)
 
     def test_ci_failure_returns_through_build(self) -> None:
         result = self.run_loop(
@@ -390,6 +539,12 @@ class FeatureLoopTest(unittest.TestCase):
     def test_blocked_stage_notifies_the_missing_decision(self) -> None:
         result = self.run_loop(["blocked"], **self.notify_env())
         self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn(f"state: {self.state_path().resolve()}", result.stdout)
+        self.assertIn(
+            "events: "
+            f"{(self.repo / 'features' / 'PROJ-7-example' / 'loop.log').resolve()}",
+            result.stdout,
+        )
         self.assertEqual(
             self.notifications()[-1],
             ["PROJ-7", "decision_needed", "which provider owns login"],

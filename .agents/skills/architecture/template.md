@@ -49,8 +49,12 @@ language of the project's documents.
 - **Validated again at:** <where, or "nowhere, and here is why">
 
 ## Errors
-| Kind of failure | Returns | User sees | Never in the message |
-|---|---|---|---|
+| Kind of failure | Returns | Product-wide surface | User sees and can do next | Focus / announcement | Never in the message |
+|---|---|---|---|---|---|
+
+<Choose one shared placement rule for field validation, whole-form failure,
+page/request failure, missing records and background failure. A feature applies
+these surfaces; it does not invent a new toast, banner or error page.>
 
 ## Logging and audit
 - **Logged:** <what, at which level>
@@ -111,6 +115,9 @@ language of the project's documents.
 - **Fixtures:** <how test data is made - and the rule that it comes from the spec's
   example data>
 - **A test is named:** <the convention, including the AC number>
+- **Guard mutation:** <how a new or changed permission or tenant guard is
+  temporarily bypassed and the refused-role/cross-tenant test is proved red, with
+  the worktree restored clean afterwards>
 
 ### Browser end to end
 - **Runner:** <project-owned runner; use what already exists, otherwise choose one>
@@ -143,8 +150,12 @@ language of the project's documents.
 | Module boundaries | | <who may import whom> | |
 | Forbidden APIs and patterns | | | |
 
-**The gate runs:** `<the exact commands, in order>` - after every batch in `$build`
-and in CI.
+**Batch gate recipe:** `<how to select affected tests, scoped formatting/lint/types
+and the smallest integration smoke path>` - after every batch in `$build`. It must
+not invoke the complete repository gate below.
+
+**Integrated and CI gate:** `<the exact complete commands, in order>` - once after
+the target branch is integrated into the finished feature, and again in CI.
 
 **Git hooks** (versioned in the repository, installed by the documented setup command):
 

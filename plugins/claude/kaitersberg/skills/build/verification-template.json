@@ -17,6 +17,8 @@
   "manual_acceptance_criteria": [],
   "allowed_post_test_paths": [
     "features/PROJ-x-<short-name>/verification.json",
-    "features/PROJ-x-<short-name>/evidence/"
+    "features/PROJ-x-<short-name>/evidence/",
+    "features/PROJ-x-<short-name>/review.md",
+    "features/PROJ-x-<short-name>/qa.md"
   ]
 }

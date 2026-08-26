@@ -25,10 +25,11 @@ that sub-agent must be a fresh one, not a fork carrying the build context.
   first, write down what the implementation must do, and only then open the diff.
   Reading the code first anchors you to it, and you will find yourself explaining
   the implementation instead of judging it.
-- **Fix nothing.** No edits, no commits, no "while I was in there". A reviewer who
+- **Fix nothing.** No product edits, no "while I was in there". A reviewer who
   fixes becomes an author and loses the only thing that made them useful. The only
-  two files you write are your own `review.md` and this feature's row in
-  `features/INDEX.md` - everything else in the repository you read.
+  feature artifacts you write are the current `review.md` and, when replacing one,
+  its verbatim predecessor under `evidence/report-history/`; the only lifecycle
+  edit is this feature's row in `features/INDEX.md`.
 - **Every finding names a location and a consequence.** `file:line`, what is wrong,
   and what goes wrong because of it. A finding without a consequence is a
   preference, and preferences do not block a feature.
@@ -38,9 +39,18 @@ that sub-agent must be a fresh one, not a fork carrying the build context.
   `features/INDEX.md` from the default checkout. Read code and write the current
   `review.md` in the feature worktree. Never infer current status from the stale
   board copy carried by a feature branch.
-- **`review.md` is the current snapshot, not an accumulating transcript.** Replace
-  it for the new reviewed SHA. Git already preserves prior rounds; appending them
-  makes every later build and PR re-read findings that no longer describe HEAD.
+- **`review.md` is one bounded current snapshot, not an accumulating transcript.**
+  Before replacing it, copy the previous snapshot verbatim to
+  `evidence/report-history/review-<previous-reviewed-sha>-<run-id>-r<round>.md` in
+  an unattended run. Outside the runner, use
+  `review-<previous-reviewed-sha>-manual-r<next-free-number>.md`. Treat the name as
+  create-only: never overwrite an archive; advance the final number if the target
+  already exists. Never append an old round to the current file. The current report
+  carries exactly one
+  `kaitersberg-report: review` marker and one `kaitersberg-subject-sha:` marker.
+  Keep it at or below 64 KiB by linking bounded evidence and archived rounds rather
+  than embedding them. History remains inspectable without making every later
+  build and PR re-read findings that no longer describe HEAD.
 - **Use the runner's read-only Git helper when one is supplied.** An unattended
   loop removes raw Git because `git checkout`, `git clean`, `git apply` and Git
   shell aliases can all write while matching a broad `git *` permission. Run the
@@ -61,7 +71,8 @@ that sub-agent must be a fresh one, not a fork carrying the build context.
   is how one first review finds broad defects together instead of leaking them
   into five serial rounds.
 - **Delta** after `$build` answered findings. In a fresh session, read the previous
-  review from its parent commit, inspect every answer, review `previous_sha..HEAD`,
+  snapshot or its SHA-named copy under `evidence/report-history/`, inspect every
+  answer, review `previous_sha..HEAD`,
   and probe the architecture boundaries touched by that delta. Take the
   expectation from the previous review's *What was expected* table plus the ACs
   and design sections the findings touch - re-deriving it from the full spec and
@@ -79,8 +90,10 @@ that sub-agent must be a fresh one, not a fork carrying the build context.
   specification by design). For that one, `docs/architecture.md`, `docs/local-dev.md`
   and the feature's own `proof.md` take their place; see *The foundation feature*
   below. Any other feature without them stops here.
-- The feature's worktree has uncommitted changes → the diff is not the feature.
-  Say so and stop; work nobody committed is work nobody can review.
+- The feature's worktree has uncommitted product, configuration or plan changes →
+  the diff is not the feature. Say so and stop. A dirty current review or its
+  `evidence/report-history/` checkpoint may only be resumed by the same unattended
+  review run; it never expands the implementation diff.
 
 **The base** you diff against is the target branch of this feature - the default
 branch unless `features/INDEX.md` records another one for its wave. Name it in the
@@ -94,7 +107,8 @@ report, so a later reader knows what the diff excluded.
 🔍 Review: PROJ-x [name]
 ```
 
-1. `features/INDEX.md` from the default checkout - status, branch, owner.
+1. From `features/INDEX.md` in the default checkout, read only this feature's row;
+   use the pick rule only when eligibility itself is in question.
 2. The worktree and branch the build used. Everything you look at comes from there.
 3. The diff, in full: `git diff <base>...feature/PROJ-x-<name>` - plus the list of
    files it touched.
@@ -167,9 +181,12 @@ the next finding land.
 
 ## Phase 3 - Report
 
-Replace `features/PROJ-x-<name>/review.md` in the feature worktree and give the same
-current content back in the message. Record full or delta mode, the reviewed SHA,
-the previous reviewed SHA when any, and why the chosen scope is sufficient.
+Archive any previous current snapshot under the collision-free name above, then replace
+`features/PROJ-x-<name>/review.md` in the feature worktree and give the same current
+content back in the message. Record full or delta mode, the reviewed SHA, the
+previous reviewed SHA when any, and why the chosen scope is sufficient. Verify the
+two snapshot markers occur exactly once and the current file is no larger than
+64 KiB before returning.
 
 **Verdict:** `Approved` · `Approved with notes` · `Changes required`.
 
@@ -214,5 +231,6 @@ feature HEAD SHA. These are not aliases for generic findings.
 - [ ] Suspicions proven before being reported
 - [ ] Blind spots named
 - [ ] Board read from the default checkout and left on `In Review` throughout delivery feedback
-- [ ] `review.md` replaced as the current snapshot in the feature worktree, not appended as history
+- [ ] Previous review snapshot archived verbatim under its run-and-round name without overwriting history; `review.md` replaced, not appended
+- [ ] Current review is at most 64 KiB and has exactly one report marker and one subject-SHA marker
 - [ ] Nothing edited beyond the review file and the index status, nothing committed of the feature's code

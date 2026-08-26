@@ -34,9 +34,16 @@ are the last honest reading before a customer gets it.
 - **Lifecycle state and feature artifacts have different homes.** Read the board
   from the default checkout. Run and write the current `qa.md` and evidence manifest
   in the feature worktree. A feature branch's copy of the board is not current.
-- **`qa.md` is the current snapshot.** Replace it for the tested SHA. Git is the
-  history; an ever-growing report makes the next run distinguish fixed findings
-  from current ones again.
+- **`qa.md` is one bounded current snapshot.** Before replacing it, copy the
+  previous snapshot verbatim to
+  `evidence/report-history/qa-<previous-tested-sha>-<run-id>-r<round>.md` in an
+  unattended run. Outside the runner, use
+  `qa-<previous-tested-sha>-manual-r<next-free-number>.md`. Treat the name as
+  create-only: never overwrite an archive; advance the final number if the target
+  already exists. Never append old rounds. The current report carries exactly one
+  `kaitersberg-report: qa` marker and one `kaitersberg-subject-sha:` marker and is
+  at most 128 KiB; link bounded evidence and archived rounds instead of embedding
+  them. History stays inspectable without charging every later stage to read it.
 
 ## Full QA or targeted retest
 
@@ -80,8 +87,9 @@ works without charging every unchanged criterion again.
    security section, and the test plan with its levels.
 2. Read `design.md` for the role differences and the protection limits with their
    numbers.
-3. Read `features/INDEX.md` from the default checkout, then work in the feature's
-   worktree and branch.
+3. From `features/INDEX.md` in the default checkout, read only this feature's row;
+   use the pick rule only when eligibility itself is in question. Then work in the
+   feature's worktree and branch.
 4. Start the application per `docs/local-dev.md` and run the seed command built by
    `PROJ-1`, which gives you **at least two tenants and one user per role**. Half of
    what follows is impossible with a single account. Add this feature's example data
@@ -230,8 +238,11 @@ report trustworthy.
 
 ## Phase 6 - Report and verdict
 
-Replace `features/PROJ-x-<name>/qa.md` from [report-template.md](report-template.md),
-and give the summary in the message. **Everything the report leans on goes into the
+Archive any previous current snapshot under the collision-free name above, then
+replace `features/PROJ-x-<name>/qa.md` from
+[report-template.md](report-template.md), and give the summary in the message.
+Verify the two snapshot markers occur exactly once and the current file is no
+larger than 128 KiB. **Everything the report leans on goes into the
 same feature folder**, under `features/PROJ-x-<name>/evidence/`: screenshots,
 recordings, captured responses, the output of a failing run. A report whose
 evidence lives in a temporary directory is unreadable a week later, which is
@@ -291,5 +302,6 @@ Include the feature HEAD SHA.
 - [ ] What could not be tested is named
 - [ ] Report in the feature folder, evidence beside it under `evidence/`
 - [ ] Board read from the default checkout and left on `In Review` throughout delivery feedback
-- [ ] `qa.md` is the current snapshot; unchanged evidence is reused by SHA, not duplicated
+- [ ] Previous QA snapshot archived verbatim under its run-and-round name without overwriting history; `qa.md` replaced, not appended
+- [ ] Current QA report is at most 128 KiB and has exactly one report marker and one subject-SHA marker
 - [ ] Nothing fixed, nothing committed beyond the report and its evidence

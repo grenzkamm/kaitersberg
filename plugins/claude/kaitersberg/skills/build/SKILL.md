@@ -21,11 +21,9 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
 - **A whole delivery belongs to the external runner, never to this build
   session.** If the user asks for an unattended run or for build through review,
   QA or the pull request, and the prompt does not identify itself as
-  `This is unattended run <run-id>`, do not enter Phase 0. Read the exact
-  unattended command from the product repository's `AGENTS.md`/`CLAUDE.md` or
-  local-development document and run its `scripts/loop-feature.sh PROJ-x` command
-  from the default checkout. If that document does not name a concrete framework
-  path, stop and ask instead of guessing it.
+  `This is unattended run <run-id>`, do not enter Phase 0. Hand the explicit
+  feature ID to `/build-loop PROJ-x`; that skill resolves the runner bundled with
+  the installed plugin and starts it from the product's default checkout.
   Never synthesise the delivery loop inside this session and never dispatch
   review as a child of the builder: one
   fresh harness process per stage is the isolation the runner exists to provide.
@@ -72,6 +70,11 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
   rather than the behaviour the criterion asks for, and stops each test responding
   to what the previous one taught. One criterion at a time: test, red, implement,
   green.
+- **A new or changed permission or tenant guard is mutation-probed before the
+  integrated gate.** In a disposable worktree, or behind a trap that restores the
+  patch, bypass the guard and prove that the refused-role or cross-tenant test turns
+  red. Restore the guard and leave the worktree clean. A test that was red only
+  before the route existed is not proof that it protects the guard.
 - **Write against the version that is installed, not the one you remember.** Before
   using a library API that you are not certain of, read what is actually in the
   worktree - the version in the lockfile and the **Stack & versions** table in
@@ -145,9 +148,12 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
 ```
 
 1. Read `features/INDEX.md` from the **default checkout**, never the feature
-   worktree. On a first build, check the buildable rule: status `Ready`, dependencies
-   `Done`, no owner, nothing serialized before it in its wave. On findings or
-   integration, verify that branch and owner identify this same run.
+   worktree. Read this feature's row and the pick rule, then only its
+   dependency rows and the relevant parallel-safety row - not the rest of the
+   board. On a first build,
+   check the buildable rule: status `Ready`, dependencies `Done`, no owner, nothing
+   serialized before it in its wave. On findings or integration, verify that branch
+   and owner identify this same run.
 2. On a **first build**, claim it: set owner and status `In Progress` in one edit,
    before anything else happens - in the default branch's checkout, committed as
    `docs(PROJ-x): Claim PROJ-x for build`, and pushed when that branch tracks a
@@ -218,8 +224,9 @@ For each batch, in order:
    sub-agents.
 6. **Run the batch gate**: whatever the batch's gate line demands - the new and
    affected tests, scoped formatting/lint/types and the smallest integration smoke
-   path. Do not add the full repository and browser matrix unless the task list
-   names a reason this batch can invalidate it. **The coverage floor may not fall**; if it
+   path. If that line invokes or delegates to the architecture's full integrated or
+   CI gate, stop and correct `tasks.md` before running it; the complete gate belongs
+   only at integration. **The coverage floor may not fall**; if it
    does, the code that arrived without a test is the finding, not the number. Green: next batch. Red: fix it here, and if the same
    gate fails twice, stop and report rather than iterate blindly. A gate repair is
    its own commit - `fix(PROJ-x): <what the gate caught>` - never folded into the
@@ -235,6 +242,8 @@ For each batch, in order:
 2. **Walk the AC list.** Every `AC-n` from `spec.md` has a passing test at the level
    the spec's test plan named, or a written reason why it is manual. This is the
    check that catches a feature that builds and still does not do what was approved.
+   For every new or changed permission or tenant guard, also record the successful
+   mutation probe before accepting the integrated gate.
 3. Correct the plan documents the design listed under its corrections section, if
    the tasks left any to you. Then ask the one question that decides whether
    anything else needs touching: **would somebody who reads only the documents now
@@ -303,11 +312,12 @@ HEAD SHA. Do not translate these into generic `ok` or `findings`.
 - [ ] Sub-agents wrote only their declared files; shared files only by the orchestrator
 - [ ] Test for each AC written before its implementation, named with its AC number
 - [ ] Each of those tests was seen failing before it was made to pass, and the red run reported
+- [ ] Every new or changed permission or tenant guard was bypassed once in a disposable mutation probe, and its refused-role or cross-tenant test turned red
 - [ ] Tests assert through the interface, with expected values taken from the spec - not recomputed, not asserted on a mock, not written in bulk before the code
 - [ ] Library APIs checked against the installed version, not written from memory
 - [ ] Tidying happened inside the task, with tests green - never as a later task
 - [ ] One commit per task, task ID in the message; gate repairs committed separately
-- [ ] Targeted gate run after every batch; no batch started on a red one
+- [ ] Targeted gate run after every batch; no batch row invoked or delegated to the full integrated/CI gate; no batch started on a red one
 - [ ] Target branch merged and every product/document change committed before the one final full gate
 - [ ] Every gate had a unique temporary raw log; only bounded final/failing extracts were retained
 - [ ] `verification.json` records `TESTED_SHA`, each unique committed evidence path and the evidence-only descendant rule

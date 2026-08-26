@@ -126,7 +126,7 @@ product:
 | **Permissions** | Where a role is checked, and why not in the interface |
 | **Business rules** | Where they live, so they hold no matter which entry point calls them |
 | **Validation** | Where untrusted input stops being untrusted |
-| **Errors** | The kinds of failure, what each returns, what the user sees, and what is never in the message |
+| **Errors** | The kinds of failure, what each returns, which product-wide surface shows it, how the user recovers, and what is never in the message |
 | **Logging and audit** | What is recorded, at which level, and what must never be in a log line |
 | **Background work** | What runs outside a request, how it retries, what happens when it fails for good |
 | **Files and secrets** | Where uploads go, where keys live, what never reaches the client |
@@ -136,7 +136,7 @@ product:
 | **Retention and deletion** | What deleting actually does per entity - remove, anonymise, block - and how the retention the PRD promised is met |
 | **Performance budgets** | The numbers from the PRD turned into rules a query, a page and a job must obey, and how a breach is noticed |
 | **Dependencies** | Who may add one, what counts as justification, which licences are acceptable, and how they are updated |
-| **Testing** | What is unit, integration and end-to-end here; which browser runner and commands are used; how the database is reset; how fixtures, selectors, waits, retries and failure artefacts work; what is never mocked |
+| **Testing** | What is unit, integration and end-to-end here; which browser runner and commands are used; how the database is reset; how fixtures, selectors, waits, retries and failure artefacts work; what is never mocked; how permission and tenant guards are mutation-probed |
 | **Naming and structure** | The conventions a new file follows without asking |
 | **Quality gate** | Which rules a machine enforces, at which threshold, and what the build gate runs |
 
@@ -197,10 +197,11 @@ nothing to measure and the PRD's promise is never tested by anyone.
 Split every quality rule you write into the two kinds, because they are enforced in
 different places and confusing them is why quality documents get ignored:
 
-**Machine-enforced** - decided here, configured as real tooling by the foundation
-feature, run by `$build` after every batch and by CI. A rule of this kind that
-exists only as prose is not a rule, it is a wish. Name the tool, the setting and
-the threshold:
+**Machine-enforced** - decided here and configured as real tooling by the
+foundation feature. `$build` exercises the affected part after each batch, then
+runs the complete integrated gate once; CI runs that same complete gate. A rule of
+this kind that exists only as prose is not a rule, it is a wish. Name the tool, the
+setting and the threshold:
 - formatter and linter: which one, which rule set, which rules deliberately off
 - type checking: how strict, and which escapes are forbidden outright
 - **coverage: a floor that may not fall, not a target to reach.** A percentage
@@ -212,15 +213,22 @@ the threshold:
 - boundaries: which module may import which, enforced by the linter, not by hope
 - forbidden: the APIs, patterns and imports that must never appear, and the reason
 
-**Where each of them runs.** The gate after a batch and in CI is the authority -
-it cannot be skipped. A git hook is the earlier, cheaper copy of a *subset* of it,
-and it is the only place a commit message can be checked at all, because nothing
-downstream ever reads one. Decide three things and no more: which checks run in
-`pre-commit` (fast ones on staged files only - a hook that runs the full test suite
-gets bypassed by the second day), whether `commit-msg` enforces the commit format
-from `AGENTS.md`, and that hooks are versioned in the repository rather than left to
-each developer to install. Say explicitly that `--no-verify` stays available and
-that CI re-runs everything anyway - a hook is a fast correction, never the proof.
+**Where each of them runs.** Write two different command contracts. The **batch
+gate recipe** selects the new and affected tests, scoped formatting/lint/types and
+the smallest integration smoke path; it cannot name the complete repository gate
+as its shortcut. The **integrated and CI gate** is the exact complete command
+sequence, run once after the target branch is integrated and again in CI. `$tasks`
+copies both contracts and rejects a batch line that equals or contains the full
+gate. This distinction keeps feedback fast without weakening the final proof.
+
+A git hook is the earlier, cheaper copy of a *subset* of the gate, and it is the
+only place a commit message can be checked at all, because nothing downstream ever
+reads one. Decide three things and no more: which checks run in `pre-commit` (fast
+ones on staged files only - a hook that runs the full test suite gets bypassed by
+the second day), whether `commit-msg` enforces the commit format from `AGENTS.md`,
+and that hooks are versioned in the repository rather than left to each developer
+to install. Say explicitly that `--no-verify` stays available and that CI re-runs
+everything anyway - a hook is a fast correction, never the proof.
 
 **Judgement** - decided here as a written expectation, enforced by `$review`,
 because no tool can see it: is this abstraction earned, does this test assert the
@@ -278,6 +286,7 @@ Next: `$scaffold`.
 - [ ] Tenant isolation decided in exactly one place, and how new queries inherit it
 - [ ] Permission check located where the action happens, with the reason
 - [ ] Error, logging and audit rules include what must never appear in them
+- [ ] Error kinds map to one product-wide surface, recovery action and focus rule
 - [ ] Migration and testing conventions concrete enough to follow without asking
 - [ ] Concurrent writes decided: stale writes refused or merged, in one mechanism
 - [ ] Time, decimal, rounding and unit conventions fixed once, with the storage and display rule
@@ -285,9 +294,11 @@ Next: `$scaffold`.
 - [ ] Performance budgets carry the PRD's numbers, the query rules that keep them, and how a breach is noticed
 - [ ] Dependency policy decided: who adds, what justifies, which licences, how they are updated
 - [ ] Browser E2E runner, local and CI commands, supported projects, state isolation, locator policy, waits, retries and failure artefacts decided
+- [ ] New or changed permission and tenant guards have a mutation-probe rule
 - [ ] Visual regression explicitly enabled with an approved baseline, or explicitly not used
 - [ ] Quality rules split into machine-enforced and judgement, and labelled as such
 - [ ] Every machine-enforced rule names a tool, a setting and a number
+- [ ] Batch gate recipe and integrated/CI gate are distinct; the complete gate appears only in the integrated/CI contract
 - [ ] Git hooks decided: which checks run pre-commit, whether commit-msg is enforced, and that the gate stays the authority
 - [ ] Coverage set as a floor that may not fall, with the current number
 - [ ] The escape hatch decided: suppressions carry a reason on the line

@@ -41,16 +41,16 @@ EM_DASH=$(printf '\342\200\224')
 no_em_dash() { ! git grep -Iq "$EM_DASH"; }
 step "tracked text uses ASCII dashes" no_em_dash
 
-for f in scripts/*.sh; do
-  step "shellcheck ${f#scripts/}" shellcheck "$f"
+for f in scripts/*.sh .claude/skills/*/scripts/*.sh; do
+  step "shellcheck $f" shellcheck "$f"
 done
 
-for f in scripts/*.py; do
+for f in scripts/*.py .claude/skills/*/scripts/*.py; do
   if command -v ruff >/dev/null; then
-    step "ruff ${f#scripts/}" ruff check --quiet "$f"
+    step "ruff $f" ruff check --quiet "$f"
   else
     # No linter installed is not a reason to accept a file that will not parse.
-    step "python parses ${f#scripts/}" python3 -m py_compile "$f"
+    step "python parses $f" python3 -m py_compile "$f"
   fi
 done
 

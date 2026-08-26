@@ -8,6 +8,9 @@ write them in the language of the project's documents.
 ```markdown
 # PROJ-x: <Feature name> - Review
 
+<!-- kaitersberg-report: review -->
+<!-- kaitersberg-subject-sha: <reviewed sha> -->
+
 **Reviewed:** YYYY-MM-DD   **Branch:** feature/PROJ-x-<name>   **Commit:** <sha>
 **Mode:** Full | Delta from <previous reviewed sha>   **Scope reason:** <why this is sufficient>
 **Against:** [spec.md](spec.md) · [design.md](design.md)

@@ -64,6 +64,13 @@ that do not exist, no technical steps.>
 | Goes wrong | What the user sees | What happens to the data |
 |---|---|---|
 
+## Concurrent behaviour
+<Mandatory when this feature writes mutable data. Otherwise delete with a one-line
+reason. Apply the mechanism from `docs/architecture.md`; do not choose a new one.>
+
+| Actions that can collide | House mechanism applied | What the stale or duplicate actor sees | Data afterwards |
+|---|---|---|---|
+
 ## Component structure
 <The interface as a tree. Mark every part: reused, extended, or new. A part marked
 new must not already exist elsewhere in the product.>

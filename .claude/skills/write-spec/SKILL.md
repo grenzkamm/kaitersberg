@@ -230,6 +230,13 @@ stricter one if the feature deserves it - and the volume it must stay usable at.
 it, both have nothing to check and "is fast" quietly becomes the criterion this
 skill forbids.
 
+For every feature with a form, make the accessibility outcome concrete in the
+spec: labels and instructions remain perceivably tied to their fields, validation
+preserves entered values, required and invalid states are not conveyed by colour
+alone, errors are announced, and focus moves to the first error or an error summary
+after a failed submission. These are observable product behaviours; the technical
+design decides how the product's established pattern implements them.
+
 For an **S-sized** feature whose scope line already says everything: the short form
 is allowed - context, stories, acceptance criteria, test plan, done. Say in the
 file that the other sections were skipped as too small to need them.
@@ -296,7 +303,7 @@ Next: `/tech-design PROJ-x` for the technical design of this feature.
 - [ ] Migration of existing data answered, or ruled out in one line
 - [ ] Non-functional filled: the performance number for this feature's path and the volume it must hold
 - [ ] Conflict, format and deletion behaviour taken from `docs/architecture.md`, or the departure stated as a decision
-- [ ] Accessibility: keyboard path, focus, labels, non-colour feedback
+- [ ] Accessibility: keyboard path, focus, labels, non-colour feedback; forms also preserve values, associate instructions/errors, announce failure and focus the first error or summary
 - [ ] Every AC has a test level and a test name carrying its number, and appears exactly once
 - [ ] Out of scope carries the "not:" half of the scope line
 - [ ] Decisions made without the user are written down as decisions
