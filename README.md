@@ -310,6 +310,22 @@ returns no structured outcome. A restart cannot silently reset an exhausted
 `ROUNDS` budget; inspect the reports, raise the budget deliberately or archive the
 state with `LOOP_RESET=1`. Only one loop for a feature may hold the lock.
 
+Two commands watch a run without joining it. `scripts/loop-status.sh [PROJ-x]
+[--follow]` is the read-only status view over that persisted state: one block per
+feature - stage, round against the recorded `ROUNDS` budget, whether a loop
+process is alive, the lock, the last event and the feature worktree's latest
+commit - and it tells running, stopped on a decision, rounds exhausted, finished
+and stale (no process, state not terminal) apart. `--follow` then tails the
+loops' event streams. It takes no lock and writes nothing, so it is always safe
+next to a live loop. `LOOP_NOTIFY=<executable>` makes the loop announce itself:
+the command runs as `<notifier> <feature> <event> <detail>` for `stage_started`
+and `stage_done` (with `build round 1/3`), `decision_needed` (with the reason the
+plan is silent), `rounds_exhausted` (with the stage that never went green) and
+`finished` (`PR opened`, or `stopped before PR (PR=0)`). The loop knows no
+vendor; `scripts/notify-ntfy.sh` is a worked example that posts each event to an
+ntfy topic, optional and never a default. A failing, missing or hanging notifier
+is reported and ignored - notification is never load-bearing.
+
 A run takes hours, and every stage is a child of the shell that started it - close
 that terminal, or end the agent session that started it for you, and the stage in
 flight dies with its work uncommitted in the worktree. Detach it if it has to
@@ -658,14 +674,13 @@ next person does not solve any of it by making the core configurable.
 
 | | Idea | Why, and what it must not become |
 |---|---|---|
-| **1** | **`LOOP_NOTIFY`** - the loop runs one command of your choosing when it ends or stops | The loop reports an exit code and nothing else, which is its one named gap. A hook that takes any command works with Slack, ntfy, a desktop notifier or a post into a workspace; binding the script to one vendor solves the same problem in a way that only helps one person |
-| **2** | **A check that a skill change demands a version bump** | `scripts/check.sh` verifies that both plugin manifests agree on a version. It does not notice that ten skill files changed while the version stood still, which is exactly what happened on the day the checks were written |
-| **3** | **`loop-next`** - take the next feature the pick rule allows and build it, then the one after | The board already defines *pickable*: status `Ready`, no owner, every dependency `Done`. Turning that into a queue changes the unit from one feature unattended to a whole wave unattended, and it inherits every place the loop already stops. It must inherit them, not add new ones |
-| **4** | **A [Buzz Projects](https://buzz.xyz/projects) activity adapter** - give each feature branch a shared channel and publish loop stages, commits, review and QA outcomes, approval requests and links to the repository artefacts as signed events | Buzz is a self-hosted relay where people, agents, workflows and git events share one searchable history, so the delivery loop fits it better than a generic notification does. Its project binding, issues, approval and merge surfaces still have to become stable enough to target. Until then this remains step 2 of the plan above: **one way out.** `features/INDEX.md` stays authoritative, and neither a Buzz event nor an action in Buzz may move a rung or merge a branch back in Kaitersberg |
+| **1** | **A check that a skill change demands a version bump** | `scripts/check.sh` verifies that both plugin manifests agree on a version. It does not notice that ten skill files changed while the version stood still, which is exactly what happened on the day the checks were written |
+| **2** | **`loop-next`** - take the next feature the pick rule allows and build it, then the one after | The board already defines *pickable*: status `Ready`, no owner, every dependency `Done`. Turning that into a queue changes the unit from one feature unattended to a whole wave unattended, and it inherits every place the loop already stops. It must inherit them, not add new ones |
+| **3** | **A [Buzz Projects](https://buzz.xyz/projects) activity adapter** - give each feature branch a shared channel and publish loop stages, commits, review and QA outcomes, approval requests and links to the repository artefacts as signed events | Buzz is a self-hosted relay where people, agents, workflows and git events share one searchable history, so the delivery loop fits it better than a generic notification does. Its project binding, issues, approval and merge surfaces still have to become stable enough to target. Until then this remains step 2 of the plan above: **one way out.** `features/INDEX.md` stays authoritative, and neither a Buzz event nor an action in Buzz may move a rung or merge a branch back in Kaitersberg |
 
 **Deliberately not planned.** Dragging a card between columns in an external tracker:
 it would set a rung no skill wrote, which is the one thing the board must never
-show. Reading feature state back out of a tracker, for the reason in row 4. A
+show. Reading feature state back out of a tracker, for the reason in row 3. A
 setup skill whose whole job is a paragraph - `/plan-product` already writes the
 file that paragraph belongs in. And a branch in the loop that detects Orca and
 starts itself in its terminal: `/build` has one because Orca *owns* worktrees, and
@@ -721,6 +736,11 @@ scripts/update-installed-plugins.sh Refresh both cached local plugin installs
 scripts/loop-feature.sh           Build, review, qa and the pull request unattended,
                                   one process per stage, stopping where a person
                                   is required
+scripts/loop-status.sh            Read-only status of the persisted loops - stage,
+                                  round, process, lock - and --follow for the
+                                  event stream
+scripts/notify-ntfy.sh            Example LOOP_NOTIFY notifier posting to an ntfy
+                                  topic; optional, never a default
 scripts/review-git.py             Fixed read-only Git queries for unattended review
 scripts/buzz-doctor.py            Read-only terminal diagnosis from loop to Buzz,
                                   plus one explicit active webhook probe
