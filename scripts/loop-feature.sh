@@ -26,9 +26,17 @@
 # the stage in flight with its work uncommitted. Detach it if that matters:
 #   tmux new -d -s PROJ-x 'ROUNDS=3 scripts/loop-feature.sh PROJ-x'
 #
-# Being told when it ends: the script only reports an exit code, on purpose -
-# wrap it in whatever already notifies you, for example
+# Being told what happens: set LOOP_NOTIFY to an executable and the loop runs it
+# as  <notifier> <feature> <event> <detail>  at its decision points -
+# stage_started and stage_done with "stage round X/Y", decision_needed with the
+# reason the plan is silent, rounds_exhausted with the stage that never went
+# green, and finished with "PR opened" or "stopped before PR (PR=0)". The loop
+# knows no vendor: scripts/notify-ntfy.sh is a worked example, and wrapping the
+# whole run still works too:
 #   ntfy done -- scripts/loop-feature.sh PROJ-3
+# A failing, missing or hanging notifier is reported and ignored - notification
+# is never load-bearing. scripts/loop-status.sh reads the state this script
+# persists without touching it.
 # Being told per stage: set STAGE_DONE_CMD to a shell command; it runs after every
 # stage outcome and its persisted transition with STAGE, OUTCOME, FEATURE, RUN_ID,
 # HEAD_SHA, NEXT_STAGE and ACTION in its environment. A failing hook is recorded,
@@ -117,7 +125,11 @@ fi
 
 RUN_ID=${RUN_ID:-"$(date -u +%Y%m%dT%H%M%SZ)-$$"}
 START_STAGE=${START_STAGE:-build}
-python3 "$STATE_HELPER" init "$STATE_FILE" "$F" "$RUN_ID" --stage "$START_STAGE" >/dev/null
+ROUNDS=${ROUNDS:-3}  # maximum persisted red/incomplete outcomes per stage
+# The budget is persisted so a read-only observer (scripts/loop-status.sh) can
+# show "round X/Y" and tell an exhausted loop from a merely stopped one.
+python3 "$STATE_HELPER" init "$STATE_FILE" "$F" "$RUN_ID" \
+  --stage "$START_STAGE" --rounds "$ROUNDS" >/dev/null
 RUN_ID=$(python3 "$STATE_HELPER" show "$STATE_FILE" --field run_id)
 
 # /build dispatches its tasks as background subagents, and `claude -p` kills those
@@ -125,11 +137,23 @@ RUN_ID=$(python3 "$STATE_HELPER" show "$STATE_FILE" --field run_id)
 # unfinished task with its work uncommitted. 0 means wait for them.
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=${CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS:-0}
 
-ROUNDS=${ROUNDS:-3}  # maximum persisted red/incomplete outcomes per stage
 PR=${PR:-1}          # open the pull request after QA allows delivery; PR=0 stops before it
 SKILL_NS=${SKILL_NS:-kaitersberg}
 INFRA_RETRIES=${INFRA_RETRIES:-3}
 STAGE_DONE_CMD=${STAGE_DONE_CMD:-}  # per-stage notification hook, see header
+LOOP_NOTIFY=${LOOP_NOTIFY:-}        # per-event notifier executable, see header
+
+notify() { # notify <event> <detail> - never load-bearing: a failing, missing or
+  # hanging notifier is reported and ignored, so it can never stop the loop.
+  [[ -n $LOOP_NOTIFY ]] || return 0
+  local code=0
+  if [[ -n $TIMEOUT_BIN ]]; then
+    "$TIMEOUT_BIN" 30 "$LOOP_NOTIFY" "$F" "$1" "$2" || code=$?
+  else
+    "$LOOP_NOTIFY" "$F" "$1" "$2" || code=$?
+  fi
+  (( code == 0 )) || echo "$F: LOOP_NOTIFY $1 exited $code (ignored)" >&2
+}
 
 # Writing stages may edit and run things; reading stages may not. `dontAsk` turns
 # the "/review and /qa fix nothing" rule into something the harness enforces
@@ -159,7 +183,9 @@ schema_for() {
     pr) outcomes='["opened","ci_failed","conflict","incomplete","blocked"]' ;;
     *) echo "unknown stage: $1" >&2; return 64 ;;
   esac
-  printf '{"type":"object","properties":{"outcome":{"enum":%s},"head_sha":{"type":"string","pattern":"^[0-9a-f]{7,64}$"}},"required":["outcome","head_sha"],"additionalProperties":false}' "$outcomes"
+  # reason is required but nullable, not optional: codex exec sends the schema
+  # to the API with strict:true, and strict mode rejects optional properties.
+  printf '{"type":"object","properties":{"outcome":{"enum":%s},"head_sha":{"type":"string","pattern":"^[0-9a-f]{7,64}$"},"reason":{"type":["string","null"]}},"required":["outcome","head_sha","reason"],"additionalProperties":false}' "$outcomes"
 }
 
 NOTE=""      # an extra line prepended to the next stage's prompt, used by /pr
@@ -175,7 +201,7 @@ checkout and feature artifacts from the feature worktree. Use the skill's full o
 delta/retest mode for the current HEAD. Return exactly one structured outcome from
 the supplied schema; include the feature HEAD as head_sha. Use incomplete only when
 the same stage must resume, and blocked only for a decision the documents do not
-answer."
+answer - then name that decision in reason; otherwise set reason to null."
 }
 
 claude_stage() { # claude_stage <skill> <schema> <prompt> <permission flags...>
@@ -187,7 +213,7 @@ claude_stage() { # claude_stage <skill> <schema> <prompt> <permission flags...>
   | jq -r --unbuffered '
       if .type == "assistant" then (.message.content[]? | select(.type == "tool_use") | "   \(.name)")
       elif .type == "result" then "RESULT:\(.structured_output.outcome //
-            (if .subtype == "error_max_turns" then "incomplete" else "" end))\t\(.structured_output.head_sha // "")"
+            (if .subtype == "error_max_turns" then "incomplete" else "" end))\t\(.structured_output.head_sha // "")\t\(.structured_output.reason // "" | gsub("[\t\n\r]"; " "))"
       else empty end' \
   | { last=""
       while IFS= read -r line; do
@@ -217,7 +243,7 @@ codex_stage() { # codex_stage <skill> <schema> <prompt>
         "   \(.error.message // .message // "Codex stage failed")"
       else empty end' >&2 || status=$?
   (( status == 0 )) || return "$status"
-  jq -er '[.outcome, .head_sha] | @tsv' "$result_file"
+  jq -er '[.outcome, .head_sha, (.reason // "" | gsub("[\t\n\r]"; " "))] | @tsv' "$result_file"
 }
 
 stage() { # stage <skill> <permission flags...> -> tool calls to stderr, outcome and sha to stdout
@@ -280,8 +306,8 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-OUTCOME=""; HEAD_SHA=""
-run() { # run <skill> <flags...> -> sets OUTCOME and HEAD_SHA
+OUTCOME=""; HEAD_SHA=""; REASON=""
+run() { # run <skill> <flags...> -> sets OUTCOME, HEAD_SHA and REASON
   local skill=$1 attempt=0 value delay
   shift
   STAGES=$((STAGES + 1))
@@ -289,8 +315,7 @@ run() { # run <skill> <flags...> -> sets OUTCOME and HEAD_SHA
     '{type:"kaitersberg_stage", stage:$stage, run_id:$run}' >> "$D/loop.log"
   while :; do
     value=$(stage "$skill" "$@") || value=""
-    OUTCOME=${value%%$'\t'*}
-    if [[ $value == *$'\t'* ]]; then HEAD_SHA=${value#*$'\t'}; else HEAD_SHA=""; fi
+    IFS=$'\t' read -r OUTCOME HEAD_SHA REASON <<<"$value" || true
     if [[ -n $OUTCOME ]]; then
       return 0
     fi
@@ -306,19 +331,22 @@ run() { # run <skill> <flags...> -> sets OUTCOME and HEAD_SHA
 }
 
 while :; do
-  CURRENT_STAGE=$(python3 "$STATE_HELPER" show "$STATE_FILE" --field stage)
+  STATE_JSON=$(python3 "$STATE_HELPER" show "$STATE_FILE")
+  CURRENT_STAGE=$(jq -r .stage <<<"$STATE_JSON")
   if [[ $CURRENT_STAGE == complete ]]; then
     echo "$F: this loop state is already complete"; exit 0
   fi
-  MAX_ATTEMPTS=$(python3 "$STATE_HELPER" show "$STATE_FILE" \
-    | jq '[.attempts[]] | max // 0')
+  MAX_ATTEMPTS=$(jq '[.attempts[]] | max // 0' <<<"$STATE_JSON")
   if (( MAX_ATTEMPTS >= ROUNDS )); then
+    notify rounds_exhausted "$(jq -r '.attempts | to_entries | max_by(.value).key' <<<"$STATE_JSON")"
     echo "$F: persisted retry budget is exhausted ($MAX_ATTEMPTS/$ROUNDS); inspect the reports, raise ROUNDS or use LOOP_RESET=1" >&2
     exit 1
   fi
   if [[ $CURRENT_STAGE == pr && $PR != 1 ]]; then
+    notify finished "stopped before PR (PR=0)"
     echo "$F: green after review and qa - next, by hand: /$SKILL_NS:pr $F"; exit 0
   fi
+  ROUND=$(( $(jq -r --arg s "$CURRENT_STAGE" '.attempts[$s] // 0' <<<"$STATE_JSON") + 1 ))
 
   NOTE=""
   FLAGS=("${WRITE[@]}")
@@ -337,6 +365,7 @@ and this branch only. Do not stop to ask for it again. Do not merge.
 "
   fi
 
+  notify stage_started "$CURRENT_STAGE round $ROUND/$ROUNDS"
   run "$CURRENT_STAGE" "${FLAGS[@]}"
   TRANSITION_ARGS=(transition "$STATE_FILE" "$CURRENT_STAGE" "$OUTCOME")
   if [[ -n $HEAD_SHA ]]; then TRANSITION_ARGS+=(--head-sha "$HEAD_SHA"); fi
@@ -371,13 +400,17 @@ and this branch only. Do not stop to ask for it again. Do not merge.
     fi
   fi
 
+  notify stage_done "$CURRENT_STAGE round $ROUND/$ROUNDS: $OUTCOME"
   if [[ $ACTION == stop_blocked ]]; then
+    notify decision_needed "${REASON:-$CURRENT_STAGE returned blocked - read $D/loop.log}"
     echo "$F: $CURRENT_STAGE needs a decision - read $D/loop.log"; exit 2
   fi
   if [[ -n $COUNTER && $ATTEMPTS -ge $ROUNDS ]]; then
+    notify rounds_exhausted "$COUNTER"
     echo "$F: $COUNTER came back unfinished or red $ATTEMPTS times - read the current feature reports"; exit 1
   fi
   if [[ $ACTION == stop_ok ]]; then
+    notify finished "PR opened"
     echo "$F: pull request opened and green - reading it and merging it are yours"; exit 0
   fi
 done

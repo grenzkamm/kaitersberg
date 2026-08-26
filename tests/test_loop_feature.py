@@ -25,6 +25,8 @@ queue.write_text("\n".join(items) + ("\n" if items else ""), encoding="utf-8")
 calls = Path(os.environ["FAKE_CLAUDE_CALLS"])
 calls.write_text(calls.read_text(encoding="utf-8") + outcome + "\n", encoding="utf-8")
 structured = {"outcome": outcome, "head_sha": "abc1234"} if outcome else None
+if structured and outcome == "blocked":
+    structured["reason"] = "which provider owns login"
 print(json.dumps({
     "type": "result", "subtype": "success", "session_id": f"session-{outcome}",
     "num_turns": 1, "duration_ms": 10, "total_cost_usd": 0,
@@ -81,6 +83,16 @@ with path.open("a", encoding="utf-8") as handle:
 raise SystemExit(int(os.environ.get("HOOK_EXIT", "0")))
 '''
 
+FAKE_NOTIFY = r'''#!/usr/bin/env python3
+import os
+import sys
+from pathlib import Path
+
+with Path(os.environ["NOTIFY_LOG"]).open("a", encoding="utf-8") as handle:
+    handle.write("\t".join(sys.argv[1:]) + "\n")
+raise SystemExit(int(os.environ.get("NOTIFY_EXIT", "0")))
+'''
+
 
 class FeatureLoopTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -118,6 +130,11 @@ class FeatureLoopTest(unittest.TestCase):
         self.hook = self.bin / "hook"
         self.hook.write_text(FAKE_HOOK, encoding="utf-8")
         self.hook.chmod(0o755)
+        self.notify_log = self.root / "notify-log"
+        self.notify_log.write_text("", encoding="utf-8")
+        self.notifier = self.bin / "notifier"
+        self.notifier.write_text(FAKE_NOTIFY, encoding="utf-8")
+        self.notifier.chmod(0o755)
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -298,6 +315,75 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(receipt["exit_code"], 23)
         self.assertEqual(receipt["next_stage"], "build")
         self.assertIn("exit 23 (ignored)", result.stderr)
+
+    def notify_env(self, **extra: str) -> dict[str, str]:
+        return {
+            "LOOP_NOTIFY": str(self.notifier),
+            "NOTIFY_LOG": str(self.notify_log),
+            **extra,
+        }
+
+    def notifications(self) -> list[list[str]]:
+        return [
+            line.split("\t")
+            for line in self.notify_log.read_text(encoding="utf-8").splitlines()
+        ]
+
+    def test_notifier_receives_the_documented_events(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready", "opened"],
+            **self.notify_env(),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        events = self.notifications()
+        self.assertEqual(len(events), 9)
+        self.assertEqual(events[0], ["PROJ-7", "stage_started", "build round 1/3"])
+        self.assertEqual(events[1], ["PROJ-7", "stage_done", "build round 1/3: complete"])
+        self.assertEqual(events[-2], ["PROJ-7", "stage_done", "pr round 1/3: opened"])
+        self.assertEqual(events[-1], ["PROJ-7", "finished", "PR opened"])
+        self.assertEqual(self.state()["rounds"], 3)
+
+    def test_pr_zero_notifies_finished_before_the_pull_request(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready"], PR="0", **self.notify_env()
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.notifications()[-1],
+            ["PROJ-7", "finished", "stopped before PR (PR=0)"],
+        )
+
+    def test_blocked_stage_notifies_the_missing_decision(self) -> None:
+        result = self.run_loop(["blocked"], **self.notify_env())
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(
+            self.notifications()[-1],
+            ["PROJ-7", "decision_needed", "which provider owns login"],
+        )
+
+    def test_exhausted_rounds_notify_the_stage_that_never_went_green(self) -> None:
+        result = self.run_loop(
+            ["complete", "changes_required"], ROUNDS="1", **self.notify_env()
+        )
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(self.notifications()[-1], ["PROJ-7", "rounds_exhausted", "review"])
+
+    def test_failing_notifier_is_reported_and_never_breaks_the_loop(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready", "opened"],
+            **self.notify_env(NOTIFY_EXIT="7"),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state()["stage"], "complete")
+        self.assertIn("LOOP_NOTIFY stage_started exited 7 (ignored)", result.stderr)
+
+    def test_missing_notifier_never_breaks_the_loop(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready", "opened"],
+            LOOP_NOTIFY=str(self.root / "does-not-exist"),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state()["stage"], "complete")
 
     def test_retry_budget_cannot_be_bypassed_by_restart(self) -> None:
         first = self.run_loop(["complete", "changes_required"], ROUNDS="1")
