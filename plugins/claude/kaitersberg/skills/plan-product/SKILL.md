@@ -344,12 +344,12 @@ It carries:
   silent, ask - do not invent**,
 - what must never be touched: `.env.local`, real secrets, another feature's files
   while it is owned,
-- and, when this repository is built unattended, the command that does it, where
-  it stops, and how to start it detached. The person setting it up knows that path;
-  a session three weeks later starts in this repository knowing nothing, and will
-  run the pipeline by hand because nothing told it there was another way - or start
-  the loop inside its own session and kill it again on the way out, which is the
-  same gap costing a whole run instead of a little time.
+- and, when this repository is built unattended, the `/kaitersberg:build-loop`
+  and `$kaitersberg:build-loop` invocation, where it stops, and how to ask it to
+  start detached. The skill resolves its bundled runner, so the product must not
+  record a framework checkout or plugin-cache path. A session three weeks later
+  starts in this repository knowing nothing; without this pointer it will run the
+  pipeline by hand, or start the loop attached and kill it on the way out.
 
 Use the `CLAUDE.md` skeleton in [templates.md](templates.md).
 
@@ -425,6 +425,6 @@ feat: Plan the product - PRD, feature map, data model, app shell
 - [ ] Design system only if visual input existed
 - [ ] Local dev planned, `.env.local.example` written, `.env.local` untouched
 - [ ] `CLAUDE.md` written: reading list, commands, status ladder, ask-do-not-invent;
-      unattended repositories also name the loop and how to start it detached
+      unattended repositories name build-loop and how to ask it to start detached
 - [ ] Any other harness context file in the root carries the same content, not an older one
 - [ ] No code, no config files, no services started

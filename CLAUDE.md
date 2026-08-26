@@ -8,6 +8,7 @@ pipeline.
 ```
 .claude/skills/<name>/SKILL.md    the skill: role, hard rules, phases, checklist
 .claude/skills/<name>/template.md the document skeleton it fills
+.claude/skills/build-loop/scripts/ the unattended runner shipped with that skill
 .agents/skills/<name>/            the generated Codex port - never edited by hand
 .agents/plugins/marketplace.json  the repo-local Codex marketplace
 .github/                          CI, issue forms and the pull request template
@@ -21,10 +22,10 @@ scripts/check.sh                  every check this repository makes, one command
 scripts/lint-skills.py            the rules above, enforced instead of remembered
 ruff.toml                         the explicit Python lint contract
 .githooks/                        pre-commit and commit-msg, enabled with core.hooksPath
-scripts/loop-feature.sh          drives one feature through build/review/qa headless
+scripts/loop-feature.sh          compatibility entry point for the bundled runner
 scripts/loop-status.sh           read-only status view over the persisted loop state
 scripts/notify-ntfy.sh           example LOOP_NOTIFY notifier; optional, never a default
-scripts/review-git.py            fixed read-only Git queries for headless review
+scripts/review-git.py            compatibility entry point for the bundled helper
 scripts/buzz-doctor.py           diagnoses the local loop-to-Buzz path; read-only
                                  except for its explicit webhook probe
 AGENTS.md                         hand-written, not generated: Codex's context file
@@ -103,9 +104,10 @@ python3 scripts/port-to-codex.py --check    # fail if it is stale
 ```
 
 The script does exactly the mechanics named above and nothing else: it copies
-machine-readable `.json` templates byte-for-byte, drops the
-frontmatter keys Codex has no use for, rewrites `/skill` to `$skill`, `CLAUDE.md`
-to `AGENTS.md`, and the two Claude-specific tool names. If a skill ever needs
+machine-readable `.json` templates and bundled `.py`/`.sh` runtime files
+byte-for-byte with their executable modes, drops the frontmatter keys Codex has no
+use for, rewrites `/skill` to `$skill`, `CLAUDE.md` to `AGENTS.md`, the bundled
+runner locator, and the two Claude-specific tool names. If a skill ever needs
 something the map does not cover, the script stops and says so - that is a harness
 difference nobody has named yet, and it gets named in the map, not patched into the
 generated file.

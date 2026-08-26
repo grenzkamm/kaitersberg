@@ -5,6 +5,12 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
+**The unattended delivery loop is now a self-contained skill.**
+`/kaitersberg:build-loop` and `$kaitersberg:build-loop` resolve the runner bundled
+inside the installed plugin, so product repositories no longer need to know a
+Kaitersberg checkout or plugin-cache path. The old top-level script paths remain
+compatibility entry points for framework contributors.
+
 **Delivery feedback is cheaper and keeps its evidence.** Batch tasks now carry
 targeted gates while the complete gate runs once at integration. Specifications
 and designs surface form accessibility, write collisions, product-wide error

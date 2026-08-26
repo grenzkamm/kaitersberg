@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import stat
 import unittest
 from pathlib import Path
 
@@ -68,6 +69,35 @@ class SkillContractTest(unittest.TestCase):
         for name, phrase in expected.items():
             skill = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn(phrase, skill)
+
+    def test_build_loop_ships_its_runtime_and_has_harness_specific_resolution(self) -> None:
+        source = (SKILLS / "build-loop" / "SKILL.md").read_text(encoding="utf-8")
+        codex = (
+            ROOT / ".agents" / "skills" / "build-loop" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        relative_scripts = (
+            "scripts/loop-feature.sh",
+            "scripts/loop-state.py",
+            "scripts/review-git.py",
+        )
+
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/", source)
+        self.assertNotIn("CLAUDE_PLUGIN_ROOT", codex)
+        self.assertIn("exact path of this loaded `SKILL.md`", codex)
+        for relative in relative_scripts:
+            source_path = SKILLS / "build-loop" / relative
+            self.assertTrue(source_path.is_file(), relative)
+            for root in (
+                ROOT / ".agents" / "skills" / "build-loop",
+                ROOT / "plugins" / "claude" / "kaitersberg" / "skills" / "build-loop",
+                ROOT / "plugins" / "codex" / "kaitersberg" / "skills" / "build-loop",
+            ):
+                generated = root / relative
+                self.assertEqual(generated.read_bytes(), source_path.read_bytes())
+                self.assertEqual(
+                    stat.S_IMODE(generated.stat().st_mode),
+                    stat.S_IMODE(source_path.stat().st_mode),
+                )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 LOOP = ROOT / "scripts" / "loop-feature.sh"
+BUNDLED_LOOP = (
+    ROOT
+    / ".claude"
+    / "skills"
+    / "build-loop"
+    / "scripts"
+    / "loop-feature.sh"
+)
 BUILD_SKILL = ROOT / ".claude" / "skills" / "build" / "SKILL.md"
 
 
@@ -179,7 +187,11 @@ class FeatureLoopTest(unittest.TestCase):
         self.temporary.cleanup()
 
     def run_loop(
-        self, outcomes: list[str], timeout: float | None = None, **extra: str
+        self,
+        outcomes: list[str],
+        timeout: float | None = None,
+        loop_path: Path = LOOP,
+        **extra: str,
     ) -> subprocess.CompletedProcess[str]:
         self.queue.write_text("\n".join(outcomes) + "\n", encoding="utf-8")
         env = self.clean_env.copy()
@@ -195,7 +207,7 @@ class FeatureLoopTest(unittest.TestCase):
         )
         env.update(extra)
         return subprocess.run(
-            ["bash", str(LOOP), "PROJ-7"],
+            ["bash", str(loop_path), "PROJ-7"],
             cwd=self.repo,
             env=env,
             text=True,
@@ -262,6 +274,15 @@ class FeatureLoopTest(unittest.TestCase):
         self.assertEqual(len(self.calls.read_text(encoding="utf-8").splitlines()), 4)
         self.assertFalse((self.state_path().parent / "PROJ-7.pid").exists())
 
+    def test_bundled_runner_operates_from_a_foreign_product_repo(self) -> None:
+        result = self.run_loop(
+            ["complete", "approved", "production_ready", "opened"],
+            loop_path=BUNDLED_LOOP,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state()["stage"], "complete")
+
     def test_codex_runner_drives_each_stage_with_codex_exec(self) -> None:
         result = self.run_loop(
             ["complete", "approved", "production_ready", "opened"],
@@ -304,7 +325,7 @@ class FeatureLoopTest(unittest.TestCase):
 
     def test_build_skill_redirects_whole_delivery_to_the_runner(self) -> None:
         instructions = BUILD_SKILL.read_text(encoding="utf-8")
-        self.assertIn("scripts/loop-feature.sh", instructions)
+        self.assertIn("/build-loop PROJ-x", instructions)
         self.assertIn("Never synthesise the delivery loop inside this session", instructions)
 
     def test_changes_required_returns_to_build(self) -> None:

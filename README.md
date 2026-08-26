@@ -123,8 +123,9 @@ the previous one wrote.
 each stage decides, what it receives and hands over, where the work comes back and
 where a person is required - the process rather than the commands.
 
-Steps 7 to 10 run unattended: `scripts/loop-feature.sh PROJ-x`, one process per
-stage, ending at the pull request and stopping wherever a person is required. See
+Steps 7 to 10 run unattended with `/kaitersberg:build-loop PROJ-x` on Claude or
+`$kaitersberg:build-loop PROJ-x` on Codex, one process per stage, ending at the
+pull request and stopping wherever a person is required. See
 [Running a feature unattended](#running-a-feature-unattended).
 
 Findings from step 8 or 9 send work back to step 7, which then works the current
@@ -269,25 +270,39 @@ no model does.
 
 `/build`, `/review` and `/qa` are separate sessions on purpose: a reviewer who
 watched the feature being built shares the assumptions that produced its bugs. One
-script does that separation for you, one process per stage, and ends by opening the
-pull request - in the product repository:
+skill starts the bundled runner for you, one process per stage, and ends by opening
+the pull request. Invoke it from the product repository:
 
-```bash
-cd <product repo> && git checkout main
-KAITERSBERG_HARNESS=claude ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x
-KAITERSBERG_HARNESS=codex  ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x
-KAITERSBERG_HARNESS=codex  PR=0 <framework>/scripts/loop-feature.sh PROJ-x  # stop before the pull request
+```text
+# Claude Code
+/kaitersberg:build-loop PROJ-x
+
+# Codex
+$kaitersberg:build-loop PROJ-x
 ```
+
+Ask the skill to set `ROUNDS=3`, to use a specific harness, to set `PR=0`, or to
+start detached under `tmux` when needed. It passes those explicit controls to the
+runner and otherwise keeps the runner defaults.
+
+The runner and both helpers live in `skills/build-loop/scripts/` inside the
+installed plugin. Claude resolves that directory with `${CLAUDE_PLUGIN_ROOT}`;
+Codex starts from the exact `SKILL.md` path in its skill catalog and resolves the
+sibling `scripts/` directory. The skill therefore works in a foreign product
+repository without a copied script, a Kaitersberg checkout path or knowledge of
+the host's plugin cache. Framework contributors can still invoke the compatibility
+wrapper directly as `<framework>/scripts/loop-feature.sh PROJ-x`.
 
 `KAITERSBERG_HARNESS` may be omitted inside a Claude or Codex session, where the
 script detects the parent harness, or on a machine that has only one of the two
 commands. When both commands are installed in an ordinary shell, the script stops
 and asks for an explicit choice instead of silently running the wrong account.
 Each stage is a new `claude -p` or `codex exec --ephemeral` process. If somebody
-asks `/build` or `$build` for the whole delivery, the skill starts this documented
-runner; it never recreates review and QA inside the builder's session.
+asks `/build` or `$build` for the whole delivery, the skill hands the feature to
+build-loop; it never recreates review and QA inside the builder's session.
 
-The unattended review uses `scripts/review-git.py`, whose fixed queries inspect
+The unattended review uses the bundled `review-git.py` helper (also exposed at
+`scripts/review-git.py` in a framework checkout), whose fixed queries inspect
 status, diffs, commits, worktrees and tracked content without admitting mutating
 Git commands, aliases, external diff drivers or inherited repository state. The
 Claude runner additionally enforces that boundary with its tool allowlist. Codex
@@ -331,8 +346,10 @@ is reported and ignored - notification is never load-bearing.
 
 A run takes hours, and every stage is a child of the shell that started it - close
 that terminal, or end the agent session that started it for you, and the stage in
-flight dies with its work uncommitted in the worktree. Detach it if it has to
-outlive the window:
+flight dies with its work uncommitted in the worktree. Ask build-loop to start the
+runner detached under `tmux` if it has to outlive the window; the skill supplies
+the installed runner path without recording it in the product repository. In a
+Kaitersberg source checkout, the compatibility entry point remains:
 
 ```bash
 tmux new -d -s PROJ-x 'KAITERSBERG_HARNESS=codex ROUNDS=3 <framework>/scripts/loop-feature.sh PROJ-x'
@@ -361,7 +378,7 @@ one branch; `PR=0` stops before that step instead, and `/merge` is never automat
 at all. Every invocation ends with what it cost: stages, turns, wall clock, tokens;
 the state file carries lifecycle attempts across invocations.
 
-`/plan-product` writes the exact loop command into the product repository's
+`/plan-product` writes the build-loop invocation into the product repository's
 *Unattended runs* section. A session three weeks later can therefore start or
 inspect the persisted run without inventing another orchestration path. For a
 human-readable project summary, ask Claude or Codex directly or run `/status` to
@@ -486,7 +503,7 @@ bugs/INDEX.md · bugs/BUG-n-*.md  The short path
 .worktrees/PROJ-x-<name>/        One worktree per feature being built
 ```
 
-## All fifteen skills
+## All sixteen skills
 
 **Once per product**
 | Skill | Does |
@@ -502,6 +519,7 @@ bugs/INDEX.md · bugs/BUG-n-*.md  The short path
 | `/tech-design PROJ-x` | The approval document: every field, the admin/user difference, the flow, without code |
 | `/tasks PROJ-x` | Half-day tasks in parallel-safe batches, every one traceable to a criterion |
 | `/build PROJ-x` | The code, own worktree, test-first, batch by batch - also the mode that works findings |
+| `/build-loop PROJ-x` | Build, Review, QA and optionally PR in isolated sessions, using the runner bundled with the installed skill |
 | `/review PROJ-x` | The diff against spec and design, from a fresh session |
 | `/qa PROJ-x` | The running system per criterion, in the browser, plus an adversarial pass |
 | `/pr PROJ-x` | The pull request, assembled from the artifacts |
@@ -530,6 +548,7 @@ knows exactly what it has to replace:
 | Claude Code specific | What it is | What a port needs |
 |---|---|---|
 | `.claude/skills/<name>/SKILL.md` | Where a skill lives and is discovered | The equivalent location for that harness |
+| `${CLAUDE_PLUGIN_ROOT}` in `/build-loop` | The install root for its bundled runner | Resolve `scripts/loop-feature.sh` relative to the exact loaded `SKILL.md` path |
 | Frontmatter `user-invocable`, `allowed-tools`, `model`, `argument-hint`, `disable-model-invocation` | How the harness registers and constrains a skill - the last one keeps `/scaffold` from being called by a model that thought some configuration would help | The equivalent fields, or nothing |
 | `/skill-name` invocation | How a user starts one | The harness's own invocation |
 | `CLAUDE.md` | The file every Claude session reads first | The harness's context file - `AGENTS.md` for Codex. Generated templates use an explicit plain-path reading list, because Claude's `@path` imports are silent no-ops in Codex |
@@ -544,7 +563,7 @@ documents are silent the agent asks - is not harness-specific at all.
 
 ### Tools it assumes, and tools it does not
 
-**No MCP server is required.** Nothing in the fifteen skills fails because a
+**No MCP server is required.** Nothing in the sixteen skills fails because a
 server is missing, and that is deliberate: a rule that only works with one vendor's
 tool installed does not survive the port, and does not survive the day that tool is
 down.
@@ -574,7 +593,7 @@ product for visual states, wording, keyboard and focus behaviour, console output
 failed requests and adversarial journeys. A retry-only pass is reported as flaky;
 the walkthrough cannot turn a missing or failing automated suite green.
 
-`.agents/skills/` is the Codex port of all fifteen skills, and it is **generated**
+`.agents/skills/` is the Codex port of all sixteen skills, and it is **generated**
 rather than maintained: `scripts/port-to-codex.py` writes it from `.claude/skills/`,
 applying exactly the replacements in the table above. The same run refreshes the
 self-contained skill trees in `plugins/claude/kaitersberg/` and
@@ -623,9 +642,9 @@ first person asks, and so nobody solves it by making the core configurable.
 **The rule it has to obey**: optional means the default works without it. Nothing
 below may add a question to a fresh clone, and none of it may turn
 `features/INDEX.md` into a configurable thing - the moment the board is pluggable,
-every one of the fifteen skills grows a branch at "move the rung", every
-contributor has to hold both branches in their head, and the one invariant that
-holds the pipeline together becomes a convention.
+every skill that moves a rung grows a branch at that point, every contributor has
+to hold both branches in their head, and the one invariant that holds the pipeline
+together becomes a convention.
 
 | Step | What it is | What it touches |
 |---|---|---|
@@ -707,7 +726,9 @@ broken skill, because a rule that never fires is decoration.
 ```
 .claude/skills/<name>/SKILL.md    The skill: role, hard rules, phases, checklist
 .claude/skills/<name>/template.md The document skeleton it fills
-.claude/skills/<name>/*.json      Machine-readable templates, copied verbatim
+.claude/skills/<name>/*.{json,py,sh}
+                                  Machine-readable templates and bundled runtime,
+                                  copied verbatim with executable modes preserved
 .agents/skills/<name>/            The Codex port - generated, never edited by hand
 .agents/plugins/marketplace.json  The Codex marketplace catalog
 .claude-plugin/marketplace.json   The Claude Code marketplace catalog
@@ -717,15 +738,15 @@ plugins/codex/kaitersberg/  The self-contained Codex plugin
 scripts/port-to-codex.py          What generates it, and the only place the
                                   harness differences are written down
 scripts/update-installed-plugins.sh Refresh both cached local plugin installs
-scripts/loop-feature.sh           Build, review, qa and the pull request unattended,
-                                  one process per stage, stopping where a person
-                                  is required
+scripts/loop-feature.sh           Compatibility entry point for the runner bundled
+                                  in .claude/skills/build-loop/scripts/
 scripts/loop-status.sh            Read-only status of the persisted loops - stage,
                                   round, process, lock - and --follow for the
                                   event stream
 scripts/notify-ntfy.sh            Example LOOP_NOTIFY notifier posting to an ntfy
                                   topic; optional, never a default
-scripts/review-git.py             Fixed read-only Git queries for unattended review
+scripts/review-git.py             Compatibility entry point for build-loop's fixed
+                                  read-only Git helper
 scripts/buzz-doctor.py            Read-only terminal diagnosis from loop to Buzz,
                                   plus one explicit active webhook probe
 ruff.toml                         The explicit Python lint contract

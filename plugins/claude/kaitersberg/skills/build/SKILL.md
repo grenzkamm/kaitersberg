@@ -21,11 +21,9 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
 - **A whole delivery belongs to the external runner, never to this build
   session.** If the user asks for an unattended run or for build through review,
   QA or the pull request, and the prompt does not identify itself as
-  `This is unattended run <run-id>`, do not enter Phase 0. Read the exact
-  unattended command from the product repository's `AGENTS.md`/`CLAUDE.md` or
-  local-development document and run its `scripts/loop-feature.sh PROJ-x` command
-  from the default checkout. If that document does not name a concrete framework
-  path, stop and ask instead of guessing it.
+  `This is unattended run <run-id>`, do not enter Phase 0. Hand the explicit
+  feature ID to `/build-loop PROJ-x`; that skill resolves the runner bundled with
+  the installed plugin and starts it from the product's default checkout.
   Never synthesise the delivery loop inside this session and never dispatch
   review as a child of the builder: one
   fresh harness process per stage is the isolation the runner exists to provide.
