@@ -181,7 +181,10 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
 - `features/PROJ-x-<name>/tasks.md` - the batches, the gates, the write sets.
 - `spec.md` and `design.md` - as far as the tasks point at them.
 - `docs/local-dev.md` - the exact commands for install, start, test, migrate.
-- `docs/architecture.md` if it exists - the house style you are not to reinvent.
+- `docs/architecture.md` if it exists - the gate commands, the conventions and
+  the budgets, which are what this stage applies. The spec and design already
+  carry the house answers they took from it; the other plan documents are opened
+  only where those two point at them.
 
 ## Phase 2 - Run the batches
 
@@ -192,7 +195,10 @@ For each batch, in order:
 2. **Dispatch.** Do every `executor: orchestrator` task yourself. Dispatch one
    sub-agent per `executor: worker` task, all at once, each getting:
    - the task's ID, title, outcome and *done when*,
-   - its **brief**: the sections of `spec.md` and `design.md` it must read,
+   - its **brief**: the text of the `spec.md` and `design.md` sections the task's
+     brief names, **pasted into the dispatch**, with the section names kept as
+     provenance. You have already read both documents; a worker sent a pointer
+     re-reads two whole files to find its sections, once per worker per batch,
    - the ACs it must satisfy and the test names that carry those AC numbers,
    - its **writes** list, stated as the only files it may change,
    - its **reads** list,

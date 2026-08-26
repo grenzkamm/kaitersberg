@@ -330,8 +330,12 @@ syntax: the generated context file must work in both Claude and Codex.
 
 It carries:
 - what this product is, in two sentences,
-- a reading list of the living documents: the PRD, the feature board, the data model, the
-  access rules, the app shell, the architecture once it exists,
+- a reading list of the living documents, scoped by the session's role as the
+  skeleton shows: planning sessions read the plan completely, delivery sessions
+  read their feature folder plus the named slices, sub-agents read only their
+  brief. One flat "read everything" list is paid for by every session and
+  sub-agent of every delivery round, which makes it the most expensive sentence
+  in the repository,
 - the commands, from `docs/local-dev.md`,
 - the status ladder and who moves which rung,
 - the vocabulary rule: the terms in `docs/data-model.md` are the terms, in code,

@@ -390,14 +390,21 @@ them or rely on harness-specific import syntax.
 
 ## Read these
 
-Before planning, designing or building anything, read these files completely:
+Read by the role of your session, not everything every time - the delivery half of
+the pipeline runs many sessions per feature, and a reading list every one of them
+pays for in full is the largest avoidable cost in the loop:
 
-- `docs/PRD.md`
-- `features/INDEX.md`
-- `docs/data-model.md`
-- `docs/access.md`
-- `docs/app-shell.md`
-- `docs/architecture.md` once it exists
+- **Planning or designing** (product plan, spec, design, board changes): read
+  completely - `docs/PRD.md`, `features/INDEX.md`, `docs/data-model.md`,
+  `docs/access.md`, `docs/app-shell.md`, and `docs/architecture.md` once it exists.
+- **Building, reviewing or testing one feature**: the feature's own folder
+  (`features/PROJ-x-<name>/`), your feature's row and the pick rule in
+  `features/INDEX.md`, the commands in `docs/local-dev.md`, and from
+  `docs/architecture.md` the gate commands, conventions and budgets. The spec and
+  design already carry the plan answers that apply here; read a plan document only
+  when they point at it.
+- **A sub-agent given a task brief**: only what the brief hands you. The brief was
+  cut so nothing else is needed.
 
 ## Commands
 | Purpose | Command |

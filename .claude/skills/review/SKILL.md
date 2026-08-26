@@ -55,12 +55,20 @@ that sub-agent must be a fresh one, not a fork carrying the build context.
 - **Full** when no earlier `review.md` covers an ancestor of HEAD, or the changed
   surface cannot be bounded. Form the expectation once, then dispatch independent
   read-only lanes in parallel: data/migration/isolation; rules/interfaces; UI and
-  accessibility; tests/architecture. The coordinator adjudicates and deduplicates;
-  no lane edits code or the report. Parallel reading is how one first review finds
-  broad defects together instead of leaking them into five serial rounds.
+  accessibility; tests/architecture. Each lane receives its slice of the written
+  expectation and the diff of the files its line covers - pasted into the
+  dispatch, not pointed at - because four lanes that each re-read the whole spec,
+  design and diff pay the full-review cost four times over. The coordinator
+  adjudicates and deduplicates; no lane edits code or the report. Parallel reading
+  is how one first review finds broad defects together instead of leaking them
+  into five serial rounds.
 - **Delta** after `/build` answered findings. In a fresh session, read the previous
   review from its parent commit, inspect every answer, review `previous_sha..HEAD`,
-  and probe the architecture boundaries touched by that delta. Do not reread and
+  and probe the architecture boundaries touched by that delta. Take the
+  expectation from the previous review's *What was expected* table plus the ACs
+  and design sections the findings touch - re-deriving it from the full spec and
+  design is what full mode is for, and doing it every round makes three rounds
+  cost three full reviews. Do not reread and
   re-review unrelated unchanged files. Escalate to full only when the fixes changed
   a shared mechanism, migration, permission boundary or an unexpectedly broad
   surface.
@@ -95,7 +103,9 @@ report, so a later reader knows what the diff excluded.
 
 ## Phase 1 - Expectation, before the code
 
-Read `spec.md` and `design.md`. Write down, for yourself, before opening the diff:
+Read `spec.md` and `design.md` in full mode; in delta mode take the expectation
+from the previous report as described above. Write down, for yourself, before
+opening the diff:
 
 - what each `AC-n` requires, in one line,
 - the exact fields the design promised, with their rules,

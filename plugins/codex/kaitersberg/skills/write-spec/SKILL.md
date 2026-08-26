@@ -276,7 +276,7 @@ Next: `$tech-design PROJ-x` for the technical design of this feature.
 ## Checklist
 - [ ] Exactly one feature, taken from `features/INDEX.md`
 - [ ] Every imposed rule cites its row in `docs/sources/INDEX.md`, and the source is filed
-- [ ] All existing `docs/` read before the first question
+- [ ] Every document the feature touches read before the first question, per the Phase 1 table
 - [ ] Vocabulary matches `docs/data-model.md`
 - [ ] Roles taken from `docs/access.md`, not invented
 - [ ] Every user story has a role, an action and a purpose
