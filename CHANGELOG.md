@@ -5,6 +5,8 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
+## 0.6.3 - 2026-08-26
+
 **The unattended delivery loop is now a self-contained skill.**
 `/kaitersberg:build-loop` and `$kaitersberg:build-loop` resolve the runner bundled
 inside the installed plugin, so product repositories no longer need to know a
