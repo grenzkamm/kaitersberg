@@ -86,6 +86,14 @@ to stop the moment reality disagrees with the plan - not to improvise past it.
   that passes review because nobody specified otherwise. The answer goes back into
   `spec.md` or `design.md`, then the work continues.
 - **A failed gate stops the run.** Do not start the next batch on a red one.
+- **A green gate is also the only good place to stop.** When this session's
+  remaining context no longer safely carries a whole further batch - dispatch,
+  collection and gate - end here: commit what is green, report `incomplete` and
+  let a fresh session resume from `tasks.md`. A batch cut off mid-flight by the
+  turn limit loses its sub-agents' uncommitted work and buys the next session a
+  re-run instead of a handover. The cut still costs a round of the loop's
+  `ROUNDS` budget, so it is a judgement about the next batch, never a routine
+  stop after every one.
 - **Gate output goes to unique files outside the worktree, never wholesale into
   your context.** Before the first gate, create one run-specific temporary
   directory with `mktemp -d`; install cleanup for that exact directory. Give every
@@ -225,7 +233,9 @@ For each batch, in order:
    path. If that line invokes or delegates to the architecture's full integrated or
    CI gate, stop and correct `tasks.md` before running it; the complete gate belongs
    only at integration. **The coverage floor may not fall**; if it
-   does, the code that arrived without a test is the finding, not the number. Green: next batch. Red: fix it here, and if the same
+   does, the code that arrived without a test is the finding, not the number.
+   Green: next batch - unless the remaining context no longer carries a whole
+   one; then stop here as `incomplete` (hard rule above). Red: fix it here, and if the same
    gate fails twice, stop and report rather than iterate blindly. A gate repair is
    its own commit - `fix(PROJ-x): <what the gate caught>` - never folded into the
    next task's commit, where it silently changes what that task's message claims.
@@ -326,6 +336,7 @@ HEAD SHA. Do not translate these into generic `ok` or `findings`.
 - [ ] Every AC has a passing test or a written reason
 - [ ] `features/INDEX.md` updated at both ends: `In Progress` on claiming, `In Review` on finishing
 - [ ] `tasks.md` statuses current
+- [ ] No batch started that this session could not finish; a tight session ended `incomplete` at a green gate
 - [ ] Plan documents corrected where the design said they should be
 - [ ] Nothing merged, pushed or cleaned up
 - [ ] `.env.local` untouched
