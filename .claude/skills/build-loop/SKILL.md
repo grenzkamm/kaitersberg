@@ -1,7 +1,7 @@
 ---
 name: build-loop
-description: Start or inspect one planned feature's unattended Build, Review, QA and optional PR loop using the runtime bundled with this skill. Use for a whole delivery, a detached run, or loop status; not for one delivery stage.
-argument-hint: "PROJ-x [detached|status|follow]"
+description: Start or inspect one planned feature's unattended Build, Review, QA and optional PR loop using the runtime bundled with this skill. A run detaches by default so it outlives this session. Use for a whole delivery, a short attached run, or loop status; not for one delivery stage.
+argument-hint: "PROJ-x [attached|status|follow]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, AskUserQuestion
 model: opus
@@ -30,10 +30,17 @@ process for every stage. You do not perform any of those stages yourself.
   the unique default checkout. Stop when it cannot be identified unambiguously.
 - **One feature ID is required.** Accept only the repository's feature-ID shape,
   normally `PROJ-x`, and require exactly one matching directory below `features/`.
-  The optional mode is exactly one of `detached`, `status` or `follow`; no mode
-  means an attached run. Do not silently pick work for a command that can run for
+  The optional mode is exactly one of `attached`, `status` or `follow`; no mode
+  detaches the run. Do not silently pick work for a command that can run for
   hours and open a pull request.
-- **Starting an attached or detached run authorises the runner's PR stage for this
+- **A run detaches unless the user asked for `attached`.** This skill runs inside
+  an agent session, and every stage is a child of the shell that started it: an
+  attached run is bounded by that session's tool timeout and dies with the session,
+  taking the in-flight stage's uncommitted work with it. `detached` stays accepted
+  as an explicit spelling of the default. Choose `attached` only when the user
+  asked for it, for a short run - typically `START_STAGE=review` or `PR=0` - whose
+  exit code they want read back here.
+- **Starting a run in either mode authorises the runner's PR stage for this
   feature.** Set `PR=0` only when the user asked to stop before the pull request.
   Status and follow modes authorise no delivery action. `/merge` is never part of
   this loop.
@@ -57,9 +64,11 @@ process for every stage. You do not perform any of those stages yourself.
 - Any bundled runtime script does not exist or is not executable -> report all
   three resolved paths and stop; do not search caches or the product repository
   for another copy.
-- Detached mode without `tmux`, or with an existing `kaitersberg-PROJ-x` session
-  -> report the condition and stop. Never replace or join an existing session as
-  if a new run had started.
+- No `tmux`, or an existing `kaitersberg-PROJ-x` session -> report the condition
+  and stop. Never start the run attached instead: falling back to the mode that
+  dies with this session is the failure the default exists to prevent. Name
+  `attached` and its cost, and let the user choose. Never replace or join an
+  existing session as if a new run had started.
 - The runner returns exit 2 (a product decision is needed) -> report the persisted
   stage and reason and stop. Do not answer the product question yourself.
 
@@ -84,21 +93,7 @@ before a detached child finishes initialising; their paths are still determinist
 
 ## Phase 1 - Run the selected mode
 
-For `status` or `follow`, inspect the existing loop without starting one:
-
-```bash
-"$STATUS" PROJ-x
-"$STATUS" PROJ-x --follow
-```
-
-For the default attached mode, run from the default checkout and wait for the
-runner process itself to end:
-
-```bash
-"$LOOP" PROJ-x
-```
-
-For `detached`, run the bundled launcher from the default checkout:
+Without a mode, run the bundled launcher from the default checkout:
 
 ```bash
 "$DETACH" PROJ-x
@@ -108,7 +103,36 @@ It owns the deterministic tmux session, passes the explicit runner environment a
 captures the child's complete output and final exit code below Git's common
 directory. Do not recreate its tmux command in this skill.
 
+For `attached`, run from the default checkout and wait for the runner process
+itself to end:
+
+```bash
+"$LOOP" PROJ-x
+```
+
+For `status` or `follow`, inspect the existing loop without starting one:
+
+```bash
+"$STATUS" PROJ-x
+"$STATUS" PROJ-x --follow
+```
+
 ## Phase 2 - Report the handoff
+
+For a detached run, use a **Detached handoff**. Do not apply the runner
+exit table. Report exactly `accepted; current state unknown` until the status
+helper shows either persisted runner state or a durable launcher exit. Then
+report:
+
+- the `kaitersberg-PROJ-x` tmux session name;
+- the absolute state and event-log paths resolved in Phase 0;
+- the launcher log and exit-code paths printed by `DETACH`, which remain after an
+  immediately failed pane disappears;
+- `tail -n +1 -f` on that launcher log for the live output of the running stage
+  - never `tmux attach`, whose pane stays blank by construction because the
+  launcher redirects the runner's entire output into that log;
+- `"$STATUS" PROJ-x` for a snapshot; and
+- `"$STATUS" PROJ-x --follow` for the event stream.
 
 For status and follow, report only what the bundled status helper observed.
 
@@ -124,24 +148,11 @@ Include the current stage, the next operator action and the runner's bounded cos
 summary plus the state and event-log paths printed by the runner. Do not call a
 stopped or rate-limited run complete.
 
-For a detached run, use a separate **Detached handoff**. Do not apply the runner
-exit table. Report exactly `accepted; current state unknown` until the status
-helper shows either persisted runner state or a durable launcher exit. Then report:
-
-- the `kaitersberg-PROJ-x` tmux session name;
-- the absolute state and event-log paths resolved in Phase 0;
-- the launcher log and exit-code paths printed by `DETACH`, which remain after an
-  immediately failed pane disappears;
-- `tail -n +1 -f` on that launcher log for the live output of the running stage
-  - never `tmux attach`, whose pane stays blank by construction because the
-  launcher redirects the runner's entire output into that log;
-- `"$STATUS" PROJ-x` for a snapshot; and
-- `"$STATUS" PROJ-x --follow` for the event stream.
-
 ## Checklist
 - [ ] Bundled runner, detached launcher and status helper resolved without a path guess
 - [ ] Command started from the product default checkout
 - [ ] Exactly one explicit feature ID selected
+- [ ] Run detached unless the user asked for `attached`, never as a silent fallback
 - [ ] User/product environment overrides preserved, none invented
 - [ ] Fresh-process stage isolation left to the runner
 - [ ] Attached runner exit interpreted only after that process ended

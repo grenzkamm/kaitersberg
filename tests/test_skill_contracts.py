@@ -104,6 +104,8 @@ class SkillContractTest(unittest.TestCase):
     def test_build_loop_distinguishes_detached_start_from_runner_completion(self) -> None:
         skill = (SKILLS / "build-loop" / "SKILL.md").read_text(encoding="utf-8")
 
+        self.assertIn("no mode\n  detaches the run", skill)
+        self.assertIn("Never start the run attached instead", skill)
         self.assertIn("means only that tmux accepted the session", skill)
         self.assertIn("Do not apply the runner\nexit table", skill)
         self.assertIn("accepted; current state unknown", skill)

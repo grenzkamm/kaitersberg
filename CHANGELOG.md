@@ -5,6 +5,14 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
+**The build loop detaches by default.** `/kaitersberg:build-loop PROJ-x` without a
+mode now starts the durable tmux run; `attached` is the explicit choice for a short
+run whose exit code is read back in the session. The skill only ever runs inside an
+agent session, where an attached run is bounded by that session's tool timeout and
+dies with the session - taking the in-flight stage's uncommitted work with it. Without
+`tmux` the skill stops and names `attached` rather than falling back to the mode that
+dies.
+
 ## 0.6.3 - 2026-08-26
 
 **The unattended delivery loop is now a self-contained skill.**
