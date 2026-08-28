@@ -426,6 +426,7 @@ feat: Plan the product - PRD, feature map, data model, app shell
 - [ ] Design system only if visual input existed
 - [ ] Local dev planned, `.env.local.example` written, `.env.local` untouched
 - [ ] `CLAUDE.md` written: reading list, commands, status ladder, ask-do-not-invent;
-      unattended repositories name build-loop's detached, status and follow modes
+      unattended repositories name build-loop's detached default and its attached,
+      status and follow modes
 - [ ] Any other harness context file in the root carries the same content, not an older one
 - [ ] No code, no config files, no services started

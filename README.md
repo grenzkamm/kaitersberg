@@ -276,24 +276,29 @@ the pull request. Invoke it from the product repository:
 ```text
 # Claude Code
 /kaitersberg:build-loop PROJ-x
-/kaitersberg:build-loop PROJ-x detached
+/kaitersberg:build-loop PROJ-x attached
 /kaitersberg:build-loop PROJ-x status
 /kaitersberg:build-loop PROJ-x follow
 
 # Codex
 $kaitersberg:build-loop PROJ-x
-$kaitersberg:build-loop PROJ-x detached
+$kaitersberg:build-loop PROJ-x attached
 $kaitersberg:build-loop PROJ-x status
 $kaitersberg:build-loop PROJ-x follow
 ```
 
-The default stays attached and applies the exit table only after the runner itself
-ends. `detached` starts the runner under a deterministic tmux session and returns
-immediately; that successful start means **accepted; current state unknown**, not
-delivered or even initialised. Its handoff names the session, state file, event
-log, durable launcher log and exit-code file, snapshot command and follow command.
-If the runner fails before creating state or events, its complete error and exit
-code therefore survive the disappearing tmux pane.
+The default detaches, because the skill runs inside an agent session and a run
+takes hours: an attached run is bounded by that session's tool timeout and dies
+with the session, taking the in-flight stage's uncommitted work with it. It starts
+the runner under a deterministic tmux session and returns immediately; that
+successful start means **accepted; current state unknown**, not delivered or even
+initialised. Its handoff names the session, state file, event log, durable launcher
+log and exit-code file, snapshot command and follow command. If the runner fails
+before creating state or events, its complete error and exit code therefore survive
+the disappearing tmux pane. Without `tmux` the skill stops and says so rather than
+falling back to the mode that dies with the session.
+`attached` is the deliberate choice for a short run - typically `START_STAGE=review`
+or `PR=0` - and applies the exit table only after the runner itself ends.
 `status` prints a read-only snapshot and `follow` streams loop events without
 joining or changing the run. Ask the skill to set `ROUNDS=3`, to use a specific
 harness or to set `PR=0` when needed. It passes those explicit controls to the
@@ -390,8 +395,8 @@ loop persisted, never a second writer.
 
 A run takes hours, and every stage is a child of the shell that started it - close
 that terminal, or end the agent session that started it for you, and the stage in
-flight dies with its work uncommitted in the worktree. Use build-loop's `detached`
-mode if it has to outlive the window. The skill supplies the installed runner path
+flight dies with its work uncommitted in the worktree. That is why build-loop
+detaches by default; `attached` is the exception, for a run short enough to watch. The skill supplies the installed runner path
 without recording it in the product repository and reports the exact tmux attach,
 status and follow commands. In a Kaitersberg source checkout, the same durable
 launcher is available through its compatibility entry point:
@@ -563,7 +568,7 @@ bugs/INDEX.md · bugs/BUG-n-*.md  The short path
 | `/tech-design PROJ-x` | The approval document: every field, the admin/user difference, the flow, without code |
 | `/tasks PROJ-x` | Half-day tasks in parallel-safe batches, every one traceable to a criterion |
 | `/build PROJ-x` | The code, own worktree, test-first, batch by batch - also the mode that works findings |
-| `/build-loop PROJ-x [detached\|status\|follow]` | Build, Review, QA and optionally PR in isolated sessions, or inspect that loop, using the runtime bundled with the installed skill |
+| `/build-loop PROJ-x [attached\|status\|follow]` | Build, Review, QA and optionally PR in isolated sessions, or inspect that loop, using the runtime bundled with the installed skill |
 | `/review PROJ-x` | The diff against spec and design, from a fresh session |
 | `/qa PROJ-x` | The running system per criterion, in the browser, plus an adversarial pass |
 | `/pr PROJ-x` | The pull request, assembled from the artifacts |
