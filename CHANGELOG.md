@@ -5,13 +5,29 @@ changed, and why it was wrong before.
 
 ## Unreleased
 
-**The build loop detaches by default.** `/kaitersberg:build-loop PROJ-x` without a
-mode now starts the durable tmux run; `attached` is the explicit choice for a short
-run whose exit code is read back in the session. The skill only ever runs inside an
-agent session, where an attached run is bounded by that session's tool timeout and
-dies with the session - taking the in-flight stage's uncommitted work with it. Without
-`tmux` the skill stops and names `attached` rather than falling back to the mode that
-dies.
+**Kaitersberg keeps three skills and hands the rest over.** `/plan-product`,
+`/architecture` and `/scaffold` stay: they turn a briefing into a plan and a
+repository that runs. The thirteen skills that specified, built, judged and shipped
+a feature are gone, and so is the unattended build loop with its runner, its
+notifier and its Buzz diagnosis.
+
+Two things forced it. The specification and task skills ran parallel to
+[agent-skills](https://github.com/addyosmani/agent-skills), which does the same
+work and does it where its build skill already looks - every handoff this framework
+printed had to end in a sentence telling the builder *not* to look in its own
+default place. And a framework that owns the whole pipeline owns every bug in it:
+the parts worth keeping here are the ones nobody else writes, which is the plan a
+product is argued about before any code exists.
+
+What builds a feature now: `mattpocock:grilling` to agree what it is,
+`agent-skills:spec` and `agent-skills:plan` to write it down, `agent-skills:build`
+to build it, then `test`, `review` and `ship` in a session that did not build it.
+Both writing skills must be told the path, or they write one specification per
+repository instead of one per feature. `docs/process.md` describes the whole chain,
+including the stages this framework no longer performs.
+
+The three rungs around the build now belong to the human on the board as well as in
+prose: `Ready` is a release a person signs, and no skill in here moves it.
 
 ## 0.6.3 - 2026-08-26
 

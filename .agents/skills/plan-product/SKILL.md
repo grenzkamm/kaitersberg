@@ -21,9 +21,9 @@ truly rules that out, record it as a Non-Goal - don't just skip it.
   code, no config files, no scaffolding, no starting of services. The setup itself
   is `PROJ-1`, built later by `$scaffold` from this plan.
 - **No speculative feature specs.** `features/INDEX.md` gets one row per feature.
-  The full spec is written by `$write-spec`, into that feature's own folder, when
-  the feature is actually next in line. Fourteen specs written up front rot before
-  they're read.
+  The full spec is written by `agent-skills:spec`, into that feature's own folder,
+  when the feature is actually next in line. Fourteen specs written up front rot
+  before they're read.
 - **Never touch `.env.local` or any real secret file.** Write `.env.local.example`
   and print the values the user must paste in themselves.
 - **Never stop other projects' services** to free a port. Allocate your own range.
@@ -31,7 +31,7 @@ truly rules that out, record it as a Non-Goal - don't just skip it.
 
 ## Abort conditions
 - `docs/PRD.md` already exists and is filled out → this project is already planned.
-  Say so and point at `$write-spec` for the next feature. Do not overwrite.
+  Say so and point at `agent-skills:spec` for the next feature. Do not overwrite.
 - The repository describes itself as a framework, skill/tooling repository, or any
   other place where product artefacts do not belong → stop before writing and ask
   for the product repository. A briefing in the current directory is input, not
@@ -135,7 +135,7 @@ independently shippable. Number them `PROJ-1 … PROJ-n`.
 Give each feature **one line of scope**: what is in it, and the nearest thing
 that is deliberately not. "PROJ-7 Events Management" is a label, not a cut - the
 line is what makes the checkpoint below worth holding. Acceptance criteria stay
-out; that is `$write-spec` work.
+out; that is specification work, and it happens one feature at a time.
 
 Estimate each feature as **S / M / L** - relative size, not days. It is the
 second input to the wave layout: an L feature alone in a wave beats three L
@@ -178,19 +178,23 @@ one real thing end to end, however crudely. Name that slice explicitly.
 
 Use the INDEX skeleton in [templates.md](templates.md): ID · feature · prio ·
 status (all `Roadmap` in this planning pass) · depends on · effort · wave · spec link
-(empty here - `$write-spec` fills it) · owner and branch (both empty in this planning pass,
-claimed by whichever agent picks the feature up).
+(empty here, the specification fills it) · owner and branch (both empty in this
+planning pass, claimed by whichever agent picks the feature up).
 
-Write the **status ladder and the pick rule** into the file, so every later skill
-and any loop reads them from one place.
+Write the **status ladder and the pick rule** into the file, so everyone who comes
+later reads them from one place.
 
-The ladder moves forward once per lifecycle boundary, so the board says what may happen next:
-`Roadmap` → `Spec` ($write-spec) → `Designed` ($tech-design, on approval) →
-`Ready` ($tasks) → `In Progress` ($build) → `In Review` (built, $review and $qa) →
-`Done` ($merge, after the merge it performs). A feature that gets cut goes to `Dropped` with the
-reason in its row - deleting the row loses why it was ever wanted. `In Review`
-covers the owned delivery loop - review, QA, corrections and CI - so findings send
-work back to `$build` without bouncing the board.
+The ladder moves forward once per lifecycle boundary, so the board says what may
+happen next: `Roadmap` → `Spec` → `Ready` → `In Progress` → `In Review` → `Done`.
+A feature that gets cut goes to `Dropped` with the reason in its row, because
+deleting the row loses why it was ever wanted. `In Review` covers test, review,
+corrections and CI, so findings are worked in another round without bouncing the
+board.
+
+Only the first rung belongs to a skill in this framework. `Spec` is reached with
+`agent-skills:spec`, the three rungs around the build are moved by the human who
+starts the build, and `Done` is set by whoever merges. Write that into the file
+too: a ladder that does not say who moves it gets moved by nobody.
 
 A feature is pickable when its status is `Roadmap`, every feature it depends on is
 `Done`, no owner is set, and nothing serialized before it in its wave is still
@@ -342,13 +346,10 @@ It carries:
   silent, ask - do not invent**,
 - what must never be touched: `.env.local`, real secrets, another feature's files
   while it is owned,
-- and, when this repository is built unattended, the `/kaitersberg:build-loop`
-  and `$kaitersberg:build-loop` invocation, where it stops, and how to ask it to
-  start detached or inspect status. The skill resolves its bundled runner and
-  status helper, so the product must not record a framework checkout or
-  plugin-cache path. A session three weeks later starts in this repository knowing
-  nothing; without this pointer it will run the pipeline by hand, or start the loop
-  attached and kill it on the way out.
+- and **which skills build this product**, by name and in order, with the paths
+  the writing ones must be told. A session three weeks later starts in this
+  repository knowing nothing; without this pointer it invents a chain of its own,
+  or lets the specification skill write one `SPEC.md` over the last feature's.
 
 Use the `AGENTS.md` skeleton in [templates.md](templates.md).
 
@@ -384,7 +385,9 @@ Plus: `.env.local.example`.
 only in the file - this is the part worth arguing about now rather than in wave 4.>
 
 ## Next step
-`$architecture` - decide the house style once. Then `$scaffold`, then `$write-spec PROJ-2`.
+`$architecture` - decide the house style once. Then `$scaffold` for PROJ-1. From
+PROJ-2 on, a feature is agreed with `mattpocock:grilling`, specified with
+`agent-skills:spec` into `features/PROJ-x-<name>/spec.md`, and built from there.
 ```
 
 Then commit:
@@ -423,8 +426,7 @@ feat: Plan the product - PRD, feature map, data model, app shell
 - [ ] Mockup navigation order and groups preserved, or the deviation is explicit
 - [ ] Design system only if visual input existed
 - [ ] Local dev planned, `.env.local.example` written, `.env.local` untouched
-- [ ] `AGENTS.md` written: reading list, commands, status ladder, ask-do-not-invent;
-      unattended repositories name build-loop's detached default and its attached,
-      status and follow modes
+- [ ] `AGENTS.md` written: reading list, commands, status ladder, ask-do-not-invent,
+      and the named chain of skills that builds a feature here
 - [ ] Any other harness context file in the root carries the same content, not an older one
 - [ ] No code, no config files, no services started

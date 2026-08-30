@@ -21,11 +21,9 @@ repository. Read this before the first run:
 - **`/scaffold` starts services and writes configuration.** It is the only skill
   allowed to, and it carries `disable-model-invocation` so that a model cannot
   decide to run it - a person has to.
-- **`/build`, `/fix` and `/qa` run the project's own commands**: package managers,
-  migrations, test suites, containers, and a browser for the walkthrough.
-- **`scripts/loop-feature.sh` runs them unattended**, in sessions started with
-  `--permission-mode acceptEdits` for writing stages and `dontAsk` for reading ones.
-  A stage that needs a decision ends the run rather than guessing.
+- **The skills that build and judge a feature are not in this repository.** They
+  run the project's own commands - package managers, migrations, test suites,
+  containers, a browser - and their permissions are their own to document.
 - **No skill ever writes `.env.local`** or prints a real secret into a document.
   Secrets are named in the design, and the values stay with you.
 

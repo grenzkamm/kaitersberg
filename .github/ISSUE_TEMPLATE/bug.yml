@@ -16,8 +16,6 @@ body:
         - Claude Code skill
         - Codex skill port
         - Plugin or marketplace
-        - Unattended feature loop
-        - Dashboard or status
         - Documentation
         - Repository tooling
     validations:
@@ -62,7 +60,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Harness and version, operating system, and relevant workspace environment such as Buzz.
+      description: Harness and version, and operating system.
     validations:
       required: true
 

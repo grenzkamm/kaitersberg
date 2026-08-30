@@ -65,30 +65,30 @@ in the language the user briefed you in.
 > Central overview. Kept up to date by the skills automatically.
 
 ## Status
-Lifecycle rungs move forward once. Delivery details inside `In Review` live in the
-feature artifacts and persisted loop state, so findings do not bounce the board.
+One rung per step, so the board says what may happen next. Findings from a review
+are worked in another round without moving the feature backwards.
 
 | Status | Means | Set by |
 |---|---|---|
 | `Roadmap` | Planned as a row, nothing written yet | /plan-product |
-| `Spec` | Specification written | /write-spec |
-| `Designed` | Technical design approved | /tech-design |
-| `Ready` | Task list cut, may be built | /tasks |
-| `In Progress` | Initial build before the first full review | /build |
-| `In Review` | Owned delivery loop: review, test, corrections and CI | /build |
-| `Done` | Merged into the main branch | /merge, which merges and cleans up |
+| `Spec` | Specification written, then the task list cut | `agent-skills:spec`, `agent-skills:plan` |
+| `Ready` | Released to build | **a human**, together with `status: ready` and `verified` in the spec |
+| `In Progress` | Being built | **a human**, at build start |
+| `In Review` | Built and green: under test, review, corrections and CI | **a human** |
+| `Done` | Merged into the main branch | whoever merges |
 | `Dropped` | Cut from the product | whoever cuts it, with the reason in the row |
 
-Findings send work back to `/build` without moving the owned feature backwards on
-the board.
+The three rungs around the build belong to the human, because the build belongs to
+the human. This framework plans a product and stands it up; the code is written and
+judged by `agent-skills`.
 
 ## Features
 | ID | Feature | Prio | Status | Depends on | Effort | Wave | Spec | Owner | Branch |
 |---|---|---|---|---|---|---|---|---|---|
 | PROJ-1 | | P0 | Roadmap | - | M | 1 | - | - | - |
 
-`Spec` stays `-` until `/write-spec` creates the feature folder, then holds the
-link to `features/PROJ-x-<short-name>/spec.md`.
+`Spec` stays `-` until `agent-skills:spec` creates the feature folder, then holds
+the link to `features/PROJ-x-<short-name>/spec.md`.
 `Owner` and `Branch` stay `-` until an agent claims the feature.
 
 ## Effort calibration
@@ -351,7 +351,7 @@ second original that is stale immediately.
 Next free ID: S-2
 
 A document that changes outside this repository changes silently. The last column
-is the only thing that makes that visible, and /audit reads it.
+is the only thing that makes that visible.
 ```
 
 ---
@@ -419,34 +419,29 @@ pays for in full is the largest avoidable cost in the loop:
 <From docs/local-dev.md. Ports: <the range>.>
 
 ## How work moves
-`Roadmap` → `Spec` → `Designed` → `Ready` → `In Progress` → `In Review` → `Done`
+`Roadmap` → `Spec` → `Ready` → `In Progress` → `In Review` → `Done`
 
-Lifecycle rungs move forward once: /write-spec · /tech-design · /tasks · /build ·
-/merge, which merges it. Review, QA, corrections and CI share `In Review`. The board is `features/INDEX.md`; a feature is claimed by
-setting owner and status in one edit before any work starts.
+The product was planned by `/plan-product`, `/architecture` and `/scaffold`. Every
+feature after PROJ-1 runs on skills from outside this framework:
 
-Each feature keeps everything in `features/PROJ-x-<name>/`: spec, design, tasks,
-review, test report, pull request body, evidence.
+| Step | Skill | Writes |
+|---|---|---|
+| Agree what the feature is | `mattpocock:grilling` | nothing, it asks until you both know |
+| Specify it | `agent-skills:spec` | `features/PROJ-x-<name>/spec.md` |
+| Release it | you | `status: ready` and `verified` in that spec, `Ready` on the board |
+| Cut the task list | `agent-skills:plan` | `features/PROJ-x-<name>/tasks.md` |
+| Build it | `agent-skills:build auto` | the code, one commit per task |
+| Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | the reports named in each skill |
+| Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge |
 
-## Unattended runs
-<Fill this in if this repository is built unattended, or delete it with the line
-"built one skill at a time" - a heading nobody filled reads as "nobody looked".
+Both writing skills put their output where they are told, so name the path in the
+call. Left alone, `agent-skills:spec` writes `SPEC.md` into the repository root and
+`agent-skills:plan` writes `tasks/plan.md`, which is one specification per
+repository rather than one per feature.
 
-Name `/kaitersberg:build-loop PROJ-x` for Claude and
-`$kaitersberg:build-loop PROJ-x` for Codex as the commands that run build, review,
-qa and optionally pr as separate sessions, and say where the loop stops. The skill
-resolves the runner inside its installed plugin; this product repository must not
-record a framework checkout or plugin-cache path. Say that restarting resumes the
-persisted stage, and name the explicit state-reset and manual import-stage controls
-supplied by the framework.
-
-Say that a run detaches by default, and name its `attached`, `status` and `follow`
-modes. A detached handoff reports the tmux session plus the state, event-log,
-durable launcher-log and exit-code paths; tmux accepting the session leaves current
-state unknown and is not a completed delivery. A run takes hours, and an agent that
-starts it attached to a chat session takes it down again when that session ends,
-with the stage in flight uncommitted in the worktree - which is why detaching is
-the default and `attached` is for a run short enough to watch.>
+The board is `features/INDEX.md`; a feature is claimed by setting owner and status
+in one edit before any work starts. A bug starts at `mattpocock:diagnosing-bugs`
+and is proved fixed by `agent-skills:test` before anything else.
 
 ## Rules
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is

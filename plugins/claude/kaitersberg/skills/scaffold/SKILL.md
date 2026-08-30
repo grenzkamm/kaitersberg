@@ -19,8 +19,8 @@ This is `PROJ-1` - the foundation feature every wave-1 task depends on. It skips
 *specification* half of the pipeline: a container definition has no user stories and
 no permission matrix, and writing them would be ceremony. It does not skip the
 *delivery* half. You work on your own branch like every other feature, your proof
-run is the acceptance, and a fresh `/review` reads the result against the documents
-it was built from before `/pr` merges it.
+run is the acceptance, and a fresh `agent-skills:review` reads the result against
+the documents it was built from before the pull request merges it.
 
 ## Hard rules
 - **This is the one skill that writes configuration and starts services.** Every
@@ -102,7 +102,7 @@ In the order that lets you check each step before the next depends on it:
 2. **Quality gate**: formatter, linter with the chosen rule set, type checking at
    the chosen strictness, coverage reporting with **the floor from the
    architecture**, module boundary rules if any. Wire the exact gate commands the
-   architecture named, so `/build` can run them verbatim.
+   architecture named, so `agent-skills:build` can run them verbatim.
    Then the **git hooks the architecture decided**, if it decided any: versioned in
    the repository and activated by the documented install command. Git's own
    `core.hooksPath` is the default mechanism and needs nothing installed; a hook
@@ -130,7 +130,7 @@ In the order that lets you check each step before the next depends on it:
 7. **Seeding**: one documented command that fills a clean database with a
    development tenant set - **at least two tenants and one user per role from
    `docs/access.md`**, with known credentials. Every later skill assumes this
-   exists: `/qa` cannot test isolation with one tenant, and the pull request runbook
+   exists: a test cannot prove isolation with one tenant, and the pull request runbook
    tells a reviewer to seed and log in. Features add their own example data on top
    later; you build the mechanism and the tenants.
 8. **Environment**: `.env.local.example` with every variable, one comment per line,
@@ -179,12 +179,12 @@ now true.
    command with the output it actually produced, the restart and reset results, the
    deliberately broken test and the gate going red, the coverage floor being
    enforced, and what you could not prove. This feature has no `spec.md` and no
-   `qa.md`; this file is what `/review` reads its expectation against and what `/pr`
-   carries in place of a test report. A proof that lives only in a chat message is
+   test report; this file is what `agent-skills:review` reads its expectation
+   against and what the pull request carries in place of one. A proof that lives only in a chat message is
    gone by the time somebody asks.
 3. `features/INDEX.md`: `PROJ-1` to `In Review`, owner kept - edited and committed
-   in the default branch's checkout, as every board edit is. `Done` is set by `/merge`
-   after it merges, exactly as for every other feature - the foundation is not
+   in the default branch's checkout, as every board edit is. `Done` is set by
+   whoever merges it, exactly as for every other feature - the foundation is not
    finished because it works on your machine.
 4. Commit the proof: the document corrections from Phase 2, `proof.md`, and anything
    the clean run exposed - `feat(PROJ-1): Prove the documented commands from a clean
@@ -202,8 +202,9 @@ now true.
 Paste into `.env.local` yourself - I do not write that file:
 <the block>
 
-Next: `/review PROJ-1`, in a fresh session - then `/pr PROJ-1` and `/merge PROJ-1`.
-`/write-spec PROJ-2` once PROJ-1 is `Done`.
+Next: `agent-skills:review`, in a fresh session, then `gh pr create` and the merge.
+Once PROJ-1 is `Done`, PROJ-2 starts at `mattpocock:grilling` and is specified with
+`agent-skills:spec` into `features/PROJ-2-<name>/spec.md`.
 ```
 
 ## Checklist
@@ -232,5 +233,5 @@ Next: `/review PROJ-1`, in a fresh session - then `/pr PROJ-1` and `/merge PROJ-
 - [ ] Documents corrected where reality differed
 - [ ] `PROJ-1` claimed before the work, built on its own branch and worktree
 - [ ] Proof written to `features/PROJ-1-scaffold/proof.md`, not only reported in the message
-- [ ] `PROJ-1` set to `In Review`; `Done` left to `/merge`
+- [ ] `PROJ-1` set to `In Review`; `Done` left to whoever merges it
 - [ ] No application code beyond the walking skeleton

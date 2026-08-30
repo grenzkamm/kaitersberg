@@ -1,14 +1,15 @@
 # Kaitersberg
 
-Skills that take a SaaS product from a briefing to merged features. This repository
-contains the skills themselves - no product code. See [README.md](README.md) for the
-pipeline.
+Three skills that take a SaaS product from a briefing to a repository that runs.
+This repository contains the skills themselves - no product code. Features are
+built and judged by skills from outside this framework; see [README.md](README.md)
+for the whole chain and [docs/process.md](docs/process.md) for what each stage
+decides.
 
 ## Layout
 ```
 .claude/skills/<name>/SKILL.md    the skill: role, hard rules, phases, checklist
 .claude/skills/<name>/template.md the document skeleton it fills
-.claude/skills/build-loop/scripts/ the unattended runner shipped with that skill
 .agents/skills/<name>/            the generated Codex port - never edited by hand
 .agents/plugins/marketplace.json  the repo-local Codex marketplace
 .github/                          CI, issue forms and the pull request template
@@ -22,13 +23,6 @@ scripts/check.sh                  every check this repository makes, one command
 scripts/lint-skills.py            the rules above, enforced instead of remembered
 ruff.toml                         the explicit Python lint contract
 .githooks/                        pre-commit and commit-msg, enabled with core.hooksPath
-scripts/loop-feature.sh          compatibility entry point for the bundled runner
-scripts/loop-detach.sh           compatibility entry point for detached supervision
-scripts/loop-status.sh           compatibility entry point for bundled loop status
-scripts/notify-ntfy.sh           example LOOP_NOTIFY notifier; optional, never a default
-scripts/review-git.py            compatibility entry point for the bundled helper
-scripts/buzz-doctor.py           diagnoses the local loop-to-Buzz path; read-only
-                                 except for its explicit webhook probe
 AGENTS.md                         hand-written, not generated: Codex's context file
                                   for this repository
 ```
@@ -54,19 +48,23 @@ plugin manifests are maintained files.
   always filled and which are deleted with a one-line reason. Empty headings read as
   "nobody looked".
 
-## Invariants across the pipeline
+## Invariants across the whole chain
 - **Lifecycle rungs move forward once**, on `features/INDEX.md`: `Roadmap` → `Spec`
-  → `Designed` → `Ready` → `In Progress` → `In Review` → `Done`, plus `Dropped`.
-  `In Review` means the owned delivery loop - review, QA, corrections and CI - so
-  findings do not bounce the board and force a default-branch merge for every
-  correction. `/pr` moves nothing; `/merge` owns `Done` and cleanup.
+  → `Ready` → `In Progress` → `In Review` → `Done`, plus `Dropped`. `In Review`
+  covers test, review, corrections and CI, so findings do not bounce the board and
+  force a default-branch merge for every correction.
+- **Only the first rung belongs to a skill in here.** `Roadmap` is written by
+  `/plan-product`. `Spec` is reached by the specification skill, the three rungs
+  around the build are moved by the human who starts the build, and `Done` is set
+  by whoever merges. A skill in this repository that moves any of them is a bug.
 - **The board is written on the default branch.** `features/INDEX.md` carries the
   claim, so a status committed inside a feature worktree is invisible until the
   work merges - and a second run picks up a feature that is already taken. Every
   skill that moves a rung while a worktree exists says this, and no feature branch
   touches the file.
-- **Everything about a feature lives in `features/PROJ-x-<name>/`** - spec, design,
-  tasks, review, test report, pull request body, evidence.
+- **Everything about a feature lives in `features/PROJ-x-<name>/`** - the
+  specification and the task list before the build, and whatever the build and
+  review skills leave behind after it.
 - **Where the documents are silent, ask.** Every skill that produces work carries
   this; it is the single rule that keeps an agent from inventing behaviour.
 - **One test decides whether a document gets touched:** *would somebody who reads
@@ -76,18 +74,12 @@ plugin manifests are maintained files.
   stops being read.
 - **Only `/scaffold` writes configuration or starts services.** Everything else
   plans or builds features.
-- **`/review` and `/qa` fix nothing. `/audit` fixes nothing.** They report; `/build`
-  repairs.
-- **`/status` changes nothing at all.** It moves no rung and writes one generated
-  page from what the other skills wrote. It is the one skill exempt from the rung
-  rule above, and it says so in its own hard rules.
 - **`.env.local` is never written by any skill.**
 
 ## Portability
 The Codex port exists and is generated (below). Keep harness-specific mechanics
-**named and few**: the
-skill location, the frontmatter, the invocation, the context file, sub-agent
-dispatch, the browser tools, the fresh-session requirement. Everything else - the
+**named and few**: the skill location, the frontmatter, the invocation and the
+context file. Everything else - the
 phases, the rules and their reasons, the skeletons, the checklists - stays
 harness-neutral prose, and that is what makes a port cheap.
 
@@ -105,10 +97,9 @@ python3 scripts/port-to-codex.py --check    # fail if it is stale
 ```
 
 The script does exactly the mechanics named above and nothing else: it copies
-machine-readable `.json` templates and bundled `.py`/`.sh` runtime files
-byte-for-byte with their executable modes, drops the frontmatter keys Codex has no
-use for, rewrites `/skill` to `$skill`, `CLAUDE.md` to `AGENTS.md`, the bundled
-runner locator, and the two Claude-specific tool names. If a skill ever needs
+machine-readable templates byte-for-byte with their executable modes, drops the
+frontmatter keys Codex has no use for, and rewrites `/skill` to `$skill` and
+`CLAUDE.md` to `AGENTS.md`. If a skill ever needs
 something the map does not cover, the script stops and says so - that is a harness
 difference nobody has named yet, and it gets named in the map, not patched into the
 generated file.
