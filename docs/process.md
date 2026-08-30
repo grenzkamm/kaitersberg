@@ -5,7 +5,8 @@ receives, what it decides, and what it hands to the next one. The documents are
 named only where they are the handover itself.
 
 The same thing as one picture, including every file each stage touches:
-[workflow.excalidraw](workflow.excalidraw).
+[workflow.excalidraw](workflow.excalidraw), or [workflow-de.excalidraw](workflow-de.excalidraw)
+in German.
 
 Kaitersberg owns the first three stages. Everything after them is done by skills
 from outside this framework, and they are described here too, because a process

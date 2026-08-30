@@ -129,6 +129,8 @@ where a person is required.
 picture: every skill coloured by who wrote it, every file it reads and writes, what
 `CLAUDE.md` holds, the two paths work takes back, and the board underneath. Open it
 at [excalidraw.com](https://excalidraw.com) and export PNG or SVG for a talk.
+[docs/workflow-de.excalidraw](docs/workflow-de.excalidraw) is the same drawing in
+German; the two are edited separately, so a change to one is a change to both.
 
 **Name the paths when you call the writing skills.** Left alone,
 `agent-skills:spec` writes `SPEC.md` into the repository root and
