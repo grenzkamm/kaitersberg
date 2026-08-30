@@ -430,8 +430,10 @@ feature after PROJ-1 runs on skills from outside this framework:
 | Specify it | `agent-skills:spec` | `features/PROJ-x-<name>/spec.md` |
 | Release it | you | `status: ready` and `verified` in that spec, `Ready` on the board |
 | Cut the task list | `agent-skills:plan` | `features/PROJ-x-<name>/tasks.md` |
+| Isolate it | `superpowers:using-git-worktrees` | the branch and the worktree |
 | Build it | `agent-skills:build auto` | the code, one commit per task |
 | Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | the reports named in each skill |
+| Prove it | `superpowers:verification-before-completion` | nothing, it demands the fresh evidence |
 | Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge |
 
 Both writing skills put their output where they are told, so name the path in the
@@ -440,8 +442,19 @@ call. Left alone, `agent-skills:spec` writes `SPEC.md` into the repository root 
 repository rather than one per feature.
 
 The board is `features/INDEX.md`; a feature is claimed by setting owner and status
-in one edit before any work starts. A bug starts at `mattpocock:diagnosing-bugs`
-and is proved fixed by `agent-skills:test` before anything else.
+in one edit before any work starts.
+
+**The board is written on the default branch, never on a feature branch.** A claim
+committed inside a worktree is invisible to every other session until the feature
+merges, so the next one takes a feature that is already owned. Two branches editing
+the same table row collide on every merge. `spec.md` and `tasks.md` belong to the
+feature branch; `features/INDEX.md` does not.
+
+A bug starts at `mattpocock:diagnosing-bugs` and is proved fixed by
+`agent-skills:test` before anything else. A merge conflict is run by
+`mattpocock:resolving-merge-conflicts`: read why each side exists in that feature's
+own `spec.md`, keep both intents where they fit, then run the gate. Always resolve,
+never abort - an abort leaves half a state behind and reports that it is done.
 
 ## Rules
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is

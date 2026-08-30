@@ -116,10 +116,12 @@ as the product lives.
 | **5** | `agent-skills:spec` | The specification, into `features/PROJ-x-<name>/spec.md` | outside |
 | **6** | you | `status: ready` and `verified` in that spec, `Ready` on the board | **you** |
 | **7** | `agent-skills:plan` | The task list, into `features/PROJ-x-<name>/tasks.md` | outside |
-| **8** | `agent-skills:build auto` | The code, in its own worktree, one commit per task | outside |
-| **9** | `agent-skills:test` · `review` · `ship` | The proof, the diff against the spec, the go or no-go - **in a session that did not build it** | outside |
-| **10** | `gh pr create`, then `superpowers:finishing-a-development-branch` | The pull request and the merge | you |
-| | **↻** | Steps 4 to 10 again, for the next feature in wave order | |
+| **8** | `superpowers:using-git-worktrees` | The branch and the worktree, without landing one inside another | outside |
+| **9** | `agent-skills:build auto` | The code, one commit per task | outside |
+| **10** | `agent-skills:test` · `review` · `ship` | The proof, the diff against the spec, the go or no-go - **in a session that did not build it** | outside |
+| **11** | `superpowers:verification-before-completion` | No completion claim without the fresh evidence in the same message | outside |
+| **12** | `gh pr create`, then `superpowers:finishing-a-development-branch` | The pull request and the merge | you |
+| | **↻** | Steps 4 to 12 again, for the next feature in wave order | |
 
 [docs/process.md](docs/process.md) tells the same story the other way round: what
 each stage decides, what it receives and hands over, where the work comes back and
@@ -146,7 +148,16 @@ repository. A board with twenty rows needs one per feature:
 **When something happens that the order above does not cover:** a defect starts at
 `mattpocock:diagnosing-bugs` and is proved fixed by `agent-skills:test` before
 anything else changes. A feature request that arrives mid-flight gets a row on the
-board and a place in a wave, by hand, before anybody specifies it.
+board and a place in a wave, by hand, before anybody specifies it. A branch that
+collides with the default branch is run by `mattpocock:resolving-merge-conflicts`
+before the pull request: always resolve, never abort, and read why each side exists
+in that feature's own `spec.md`.
+
+**The board is written on the default branch, never on a feature branch.** A claim
+committed inside a worktree is invisible to every other session until the feature
+merges, so the next one takes a feature that is already owned - and two branches
+editing the same table row collide on every merge. The specification and the task
+list belong to the feature branch; `features/INDEX.md` does not.
 
 ---
 

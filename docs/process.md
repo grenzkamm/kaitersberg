@@ -231,6 +231,7 @@ forward ones.
 | Notes without a blocker | onward | Only two things block; everything else is recorded and does not stop the work |
 | A defect found after the feature merged | `mattpocock:diagnosing-bugs`, then a failing test before any fix | It is a bug now, and a bug needs a reproduction, not a specification |
 | A request arrives mid-flight | placed on the board with its true cost | The cost is which features it pushes back, named |
+| The branch collides with the default branch | `mattpocock:resolving-merge-conflicts`, before the pull request | Always resolve, never abort. Each side has a reason, and the reason is in that feature's own spec |
 
 After a return, the changed work is reviewed again in a fresh session.
 
