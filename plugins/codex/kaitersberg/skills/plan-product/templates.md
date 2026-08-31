@@ -425,7 +425,6 @@ Here. All of it in this repository, next to the code it describes:
 | `features/INDEX.md` | the board, and the bug register inside it |
 | `features/PROJ-x-*/` | `spec.md` and `tasks.md` per feature |
 | `bugs/` | the long bug pages; numbers come from the register alone |
-| `.kaitersberg/PROJ-x/` | what a build round produces: evidence, `ship.md`, reports |
 
 A specification has to be true at a commit and findable at that commit a year
 later, by a session with no network. That is why it lives here and not in a wiki.
@@ -488,7 +487,7 @@ below says which rung it leaves behind:
 | Cut the task list | `agent-skills:plan` | `features/PROJ-x-<name>/tasks.md` |
 | Isolate it | `superpowers:using-git-worktrees` | the branch and the worktree |
 | Build it | `agent-skills:build auto` | the code, one commit per task; board to `In Progress` |
-| Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | `.kaitersberg/PROJ-x/`; board to `In Review` once the build comes back green |
+| Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | nothing by themselves: all three print. **You** carry the ship decision into the pull request text; board to `In Review` once the build comes back green |
 | Prove it | `superpowers:verification-before-completion` | nothing, it demands the fresh evidence |
 | Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge; board to `Done`, owner cleared |
 
@@ -517,10 +516,12 @@ because no skill in this framework carries them any more:
 - **Every acceptance criterion needs a test that would go red if the behaviour
   broke.** Not "tests are green": this criterion, this test.
 
-`agent-skills:ship` prints a decision but does not write it. **Save the block
-verbatim to `.kaitersberg/PROJ-x/ship.md`** before opening the pull request: a
-decision that only ever appeared in a chat window is not evidence, and silence is
-not a yes. Its rollback plan belongs in the pull request text.
+`agent-skills:ship` prints a decision but does not write it, and neither do
+`agent-skills:test` and `agent-skills:review`. **Put the block verbatim into the
+pull request text** before opening it: a decision that only ever appeared in a chat
+window is not evidence, and silence is not a yes. Do not invent a directory for
+these reports. A pull request is the one place a decision gets read by somebody
+other than its author, and it is what the merge hangs on.
 
 A bug starts at `mattpocock:diagnosing-bugs` and gets a failing test from
 `agent-skills:test` before anything is repaired; its number comes from the register

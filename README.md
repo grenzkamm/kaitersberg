@@ -352,8 +352,7 @@ docs/                            The plan and the architecture
 docs/sources/                    What came from outside, and what rests on it
 features/INDEX.md                The board
 features/PROJ-x-<name>/          One folder per feature
-  spec.md · tasks.md             Written before the build
-  plus whatever the build and review skills leave behind
+  spec.md · tasks.md             Written before the build, on the default branch
 bugs/INDEX.md · bugs/BUG-n-*.md  The short path
 .worktrees/PROJ-x-<name>/        One worktree per feature being built
 ```
