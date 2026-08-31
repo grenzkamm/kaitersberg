@@ -151,8 +151,8 @@ these surfaces; it does not invent a new toast, banner or error page.>
 | Forbidden APIs and patterns | | | |
 
 **Batch gate recipe:** `<how to select affected tests, scoped formatting/lint/types
-and the smallest integration smoke path>` - after every batch in `$build`. It must
-not invoke the complete repository gate below.
+and the smallest integration smoke path>` - after every batch of the build. It
+must not invoke the complete repository gate below.
 
 **Integrated and CI gate:** `<the exact complete commands, in order>` - once after
 the target branch is integrated into the finished feature, and again in CI.
@@ -171,7 +171,7 @@ correction, the gate is the proof.
 same line. One without a reason is a review finding.
 
 ### Left to judgement
-<What no tool can see, written as an expectation so `$review` has something to
+<What no tool can see, written as an expectation so the review has something to
 measure against.>
 - <e.g. an abstraction needs a second caller before it exists>
 - <e.g. a test must fail when the behaviour breaks - assert the behaviour, not the mock>

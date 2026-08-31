@@ -172,8 +172,8 @@ Two rules settle most of the arguments and cost nothing to apply:
   in every caller, it was earning its keep.
 - **One implementation is a hypothetical seam, two is a real one.** Do not put an
   interface in front of something that does not vary. The interface with a single
-  implementation is the abstraction this pipeline produces most easily, and the one
-  `$review` is told to reject.
+  implementation is the abstraction an agent produces most easily, and the one a
+  review is told to reject.
 
 Then say which seams this product has **on purpose** - typically the database, the
 outside services, the clock, and anything that gets a fake in tests - and that
@@ -189,8 +189,9 @@ page and a write, the budget for the slowest thing the product does, the query
 rules that keep them (no unbounded list without pagination, no per-row query inside
 a loop, which indexes exist because a journey needs them), and **how a breach is
 noticed** - a test, a log threshold, or an honest "nobody notices yet, and that is
-accepted until <event>". `$qa` measures against these numbers; without them it has
-nothing to measure and the PRD's promise is never tested by anyone.
+accepted until <event>". `agent-skills:test` measures against these numbers;
+without them it has nothing to measure and the PRD's promise is never tested by
+anyone.
 
 ### The quality gate, in particular
 
@@ -198,8 +199,8 @@ Split every quality rule you write into the two kinds, because they are enforced
 different places and confusing them is why quality documents get ignored:
 
 **Machine-enforced** - decided here and configured as real tooling by the
-foundation feature. `$build` exercises the affected part after each batch, then
-runs the complete integrated gate once; CI runs that same complete gate. A rule of
+foundation feature. `agent-skills:build` exercises the affected part after each
+batch, then runs the complete integrated gate once; CI runs that same complete gate. A rule of
 this kind that exists only as prose is not a rule, it is a wish. Name the tool, the
 setting and the threshold:
 - formatter and linter: which one, which rule set, which rules deliberately off
@@ -217,9 +218,9 @@ setting and the threshold:
 gate recipe** selects the new and affected tests, scoped formatting/lint/types and
 the smallest integration smoke path; it cannot name the complete repository gate
 as its shortcut. The **integrated and CI gate** is the exact complete command
-sequence, run once after the target branch is integrated and again in CI. `$tasks`
-copies both contracts and rejects a batch line that equals or contains the full
-gate. This distinction keeps feedback fast without weakening the final proof.
+sequence, run once after the target branch is integrated and again in CI. The task
+list copies both contracts, and a batch line that equals or contains the full gate
+is wrong. This distinction keeps feedback fast without weakening the final proof.
 
 A git hook is the earlier, cheaper copy of a *subset* of the gate, and it is the
 only place a commit message can be checked at all, because nothing downstream ever
@@ -230,14 +231,14 @@ and that hooks are versioned in the repository rather than left to each develope
 to install. Say explicitly that `--no-verify` stays available and that CI re-runs
 everything anyway - a hook is a fast correction, never the proof.
 
-**Judgement** - decided here as a written expectation, enforced by `$review`,
-because no tool can see it: is this abstraction earned, does this test assert the
+**Judgement** - decided here as a written expectation, enforced by
+`agent-skills:review`, because no tool can see it: is this abstraction earned, does this test assert the
 behaviour or the mock, is this name the word from the data model, is this the
 simplest thing that works.
 
 Say plainly which is which. And decide the escape hatch now: a suppressed rule -
 a lint disable, a type escape, a skipped test - **carries a reason on the same
-line**, and `$review` treats one without a reason as a finding.
+line**, and a review treats one without a reason as a finding.
 
 **Coverage honestly:** the spec-to-task-to-test chain already guarantees a test per
 acceptance criterion, which is stronger than any percentage. The floor exists to

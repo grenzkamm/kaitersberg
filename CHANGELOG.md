@@ -3,15 +3,53 @@
 Versions are the plugin versions in both manifests. The format is kept short: what
 changed, and why it was wrong before.
 
-## Unreleased
+## 0.7.0 - 2026-08-31
 
-**The build loop detaches by default.** `/kaitersberg:build-loop PROJ-x` without a
-mode now starts the durable tmux run; `attached` is the explicit choice for a short
-run whose exit code is read back in the session. The skill only ever runs inside an
-agent session, where an attached run is bounded by that session's tool timeout and
-dies with the session - taking the in-flight stage's uncommitted work with it. Without
-`tmux` the skill stops and names `attached` rather than falling back to the mode that
-dies.
+**Kaitersberg keeps three skills and hands the rest over.** `/plan-product`,
+`/architecture` and `/scaffold` stay: they turn a briefing into a plan and a
+repository that runs. The thirteen skills that specified, built, judged and shipped
+a feature are gone, and so is the unattended build loop with its runner, its
+notifier and its Buzz diagnosis.
+
+Two things forced it. The specification and task skills ran parallel to
+[agent-skills](https://github.com/addyosmani/agent-skills), which does the same
+work and does it where its build skill already looks - every handoff this framework
+printed had to end in a sentence telling the builder *not* to look in its own
+default place. And a framework that owns the whole pipeline owns every bug in it:
+the parts worth keeping here are the ones nobody else writes, which is the plan a
+product is argued about before any code exists.
+
+What builds a feature now: `mattpocock:grilling` to agree what it is,
+`agent-skills:spec` and `agent-skills:plan` to write it down, `agent-skills:build`
+to build it, then `test`, `review` and `ship` in a session that did not build it.
+Both writing skills must be told the path, or they write one specification per
+repository instead of one per feature. `docs/process.md` describes the whole chain,
+including the stages this framework no longer performs.
+
+The three rungs around the build now belong to the human on the board as well as in
+prose: `Ready` is a release a person signs, and no skill in here moves it.
+
+**What `/plan-product` writes into a product now carries the chain**, so nobody has
+to rediscover it. Most of that text was learned by walking one real feature from
+the claim to the merge and watching where it broke: a claim that was committed and
+not pushed and therefore invisible; a board rung mirrored into the frontmatter
+status, inventing a value the lifecycle does not have; a session that announced the
+plan skill and then wrote the file by hand; a fresh worktree with no packages, no
+environment file and no hook path; a released specification corrected while its
+signature still stood; a green gate with an assertion that could not fail; and
+`gh pr create` against a self-hosted forge it cannot reach.
+
+Each of those is now a sentence in the template, and two of them are rules with
+teeth: a named skill is not optional and every step reports which one it called,
+and a withdrawn release blocks the merge instead of moving the board backwards.
+
+**Also new:** a bug register in the board skeleton with exactly one counter, the
+worktree setup as part of isolating a feature, the mutation as the proof a green
+gate is not, and two drawings of the whole chain in `docs/`, English and German.
+
+**Removed:** `.kaitersberg/` as a directory the template plants. The skills that
+filled it are gone, and the three that replaced them print into the session instead
+of writing files. The ship decision goes into the pull request text.
 
 ## 0.6.3 - 2026-08-26
 

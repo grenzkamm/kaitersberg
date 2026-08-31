@@ -9,6 +9,9 @@
 # two can never disagree about what "green" means.
 #
 set -uo pipefail
+# The bundled-runtime globs match nothing now that the skills ship no scripts;
+# without this an unmatched pattern would be linted as a literal filename.
+shopt -s nullglob
 
 cd "$(dirname "$0")/.." || exit 1
 FAILED=()
@@ -54,7 +57,7 @@ for f in scripts/*.py .claude/skills/*/scripts/*.py; do
   fi
 done
 
-step "loop transition behavior" python3 -m unittest discover -s tests
+step "skill contracts" python3 -m unittest discover -s tests
 
 step "manifests are valid json and agree on the version" python3 - <<'PY'
 import json, pathlib, sys

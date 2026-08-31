@@ -37,67 +37,12 @@ BANNER = (
     "     Do not edit: edit the source and regenerate. -->\n"
 )
 
-CODEX_BROWSER = """Use the Codex Browser plugin (`@Browser`) for this phase. For a local web
-application, open its local URL in the built-in browser. Enable Browser Developer
-mode with full CDP access when console, network, DOM or style inspection is required.
-
-Before testing:
-
-- Confirm that Browser is available and can open the application. The built-in
-  browser is available in the ChatGPT desktop app, not Codex CLI or the IDE extension.
-- If Browser is unavailable, do not claim the walkthrough passed and do not replace
-  it with an assertion from screenshots alone. Mark every affected criterion
-  `blocked`, state that browser automation was unavailable, and continue only with
-  criteria that can be verified outside the browser.
-- Use a fresh browser tab and Browser's isolated profile. Do not reuse unrelated
-  user tabs or authenticated sessions.
-
-Then:"""
-
 # Prose replacements, applied in order. Plain strings, not regexes.
 PROSE = [
-    (
-        "Set `LOOP` to\n"
-        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-feature.sh\"` and `STATUS`\n"
-        "  to `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-status.sh\"`, and set\n"
-        "  `DETACH` to\n"
-        "  `\"${CLAUDE_PLUGIN_ROOT}/skills/build-loop/scripts/loop-detach.sh\"`.",
-        "Resolve the exact directory containing this loaded `SKILL.md` from Codex's\n"
-        "  skill catalog. Set `LOOP` to its `scripts/loop-feature.sh` and `STATUS` to\n"
-        "  its `scripts/loop-status.sh`, and set `DETACH` to its\n"
-        "  `scripts/loop-detach.sh`.",
-    ),
     ("CLAUDE.md", "AGENTS.md"),
     (".claude/skills/", ".agents/skills/"),
     ("AskUserQuestion", "a multiple-choice question"),
-    # Longest first: a bare token swap would leave "Invoke the `the harness's ...` skill".
-    (
-        "Invoke the `claude-in-chrome` skill before using any browser tool. Then:",
-        CODEX_BROWSER,
-    ),
-    (
-        "**Read the console and failed network requests** after each meaningful step\n"
-        "  (`read_console_messages` and the browser's network inspection) - a feature that\n"
-        "  works while throwing errors, unhandled rejections or unexpected failed requests\n"
-        "  is not passing.",
-        "**Inspect the console and failed network requests** after each meaningful step\n"
-        "  with Browser Developer mode/CDP - a feature that works while throwing errors,\n"
-        "  unhandled rejections or unexpected failed requests is not passing.",
-    ),
-    (
-        "- Open a new tab; do not hijack the user's tabs.",
-        "- Open the application in that fresh tab.",
-    ),
-    (
-        "- Do not click anything that raises a browser dialog - it will freeze the session.",
-        "- Do not bypass browser permission or confirmation prompts. If a required action\n"
-        "  cannot be automated, including a file upload, mark that step `blocked` and\n"
-        "  record why.",
-    ),
-    ("Claude in Chrome", "Codex Browser"),
-    ("claude-in-chrome", "Codex Browser"),
 ]
-
 
 def transform(text: str, name: str, skills: list[str], is_skill_file: bool) -> str:
     if is_skill_file:

@@ -64,10 +64,18 @@ def check(skill_dir, known):
     # Handoffs are the failure this repository produces most easily. A reference
     # stands on its own - `/build PROJ-x` - so a path segment (`<name>/spec.md`,
     # `/api/items`) and markup (`</script>`) must not be mistaken for one.
-    references = re.findall(r"(?:^|[\s(\[])/([a-z][a-z-]{2,})(?=[\s.,;:!?)\]`]|$)", text, re.M)
-    for name in set(references):
-        if name not in known:
-            problems.append(f"{path}: hands off to `/{name}`, which is not a skill here")
+    #
+    # Every document of the skill is checked, not only SKILL.md: a template is
+    # copied verbatim into a product repository, so a handoff that rots in there
+    # reaches further than one in the skill and is seen by nobody here. A dead
+    # `/requirements` survived in a template for exactly as long as this loop read
+    # one file.
+    for doc in sorted(skill_dir.glob("*.md")):
+        body = doc.read_text(encoding="utf-8")
+        references = re.findall(r"(?:^|[\s(\[])/([a-z][a-z-]{2,})(?=[\s.,;:!?)\]`]|$)", body, re.M)
+        for name in set(references):
+            if name not in known:
+                problems.append(f"{doc}: hands off to `/{name}`, which is not a skill here")
 
     hits = sorted({w for w in re.findall(r"\b[\wäöüß]+\b", text.lower()) if w in GERMAN})
     if hits:
