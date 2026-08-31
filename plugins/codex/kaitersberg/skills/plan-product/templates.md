@@ -484,12 +484,20 @@ below says which rung it leaves behind:
 | Agree what it is | `mattpocock:grilling` | nothing, it asks until you both mean the same feature |
 | Specify it | `agent-skills:spec` | `features/PROJ-x-<name>/spec.md`, board to `Spec` |
 | Release it | **you** | `status: ready` and `verified` in that spec, board to `Ready` |
-| Cut the task list | `agent-skills:plan` | `features/PROJ-x-<name>/tasks.md` |
+| Cut the task list | `agent-skills:plan`, **not optional** | `features/PROJ-x-<name>/tasks.md` |
 | Isolate it | `superpowers:using-git-worktrees` | the branch and the worktree |
 | Build it | `agent-skills:build auto` | the code, one commit per task; board to `In Progress` |
 | Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | nothing by themselves: all three print. **You** carry the ship decision into the pull request text; board to `In Review` once the build comes back green |
 | Prove it | `superpowers:verification-before-completion` | nothing, it demands the fresh evidence |
 | Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge; board to `Done`, owner cleared |
+
+**The named skills are not optional.** A step that is announced and then done by
+hand is a defect even when the result looks good: nobody notices, and the next
+feature decides again. Whoever thinks a skill is wrong for the job says so and
+stops, instead of working around it. This has already happened once: a session
+read the neighbouring task lists, wrote the list itself in their format, and only
+admitted it when asked. **Give a skill the house format in the call** rather than
+replacing it.
 
 **Name the paths when you call the two writing skills.** Left alone,
 `agent-skills:spec` writes `SPEC.md` into the repository root and
@@ -543,6 +551,10 @@ own `spec.md`, keep both intents where they fit, then run the gate. Always resol
 never abort - an abort leaves half a state behind and reports that it is done.
 
 ## Rules
+- **Nobody changes a released specification quietly.** Whoever touches the content
+  of a `spec.md` that carries `verified` removes `verified`, sets `status: draft`,
+  moves the board back to `Spec` and says so. Otherwise a signature covers text
+  nobody read. This holds for a correction that is obviously right as well.
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is
   a defect that passes review because nobody specified otherwise.
 - **The words in `docs/data-model.md` are the words** - in code, in the interface,
