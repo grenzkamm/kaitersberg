@@ -126,10 +126,33 @@ anything else. Release = clear `Owner` if the work is abandoned.
 | 1 | PROJ-1, PROJ-2 | PROJ-3 after PROJ-1 | <app shell / shared types / entity X> |
 
 Next free ID: PROJ-<n+1>
+
+## Bugs
+Findings outside a running feature. A bug starts at `mattpocock:diagnosing-bugs`,
+gets a failing test from `agent-skills:test` before anything is repaired, and is
+fixed on a branch `fix/BUG-n-<short-name>`.
+
+**Only this table hands out bug numbers.** A second counter in a second place hands
+out the same number twice, which is not hypothetical: it has happened in a product
+built this way and cost three renumbered bugs.
+
+A leftover from a review is not a bug. It is planned work and gets a `PROJ-x` row
+with a wave; a bug is unplanned and starts with a reproduction.
+
+| ID | Bug | Found in | Status | Branch |
+|---|---|---|---|---|
+| - | - | - | - | - |
+
+Next free ID: BUG-1
 ```
 
-Only `PROJ-x` rows here. Full specs come from `/requirements`,
-one at a time, when the feature is actually next.
+Only `PROJ-x` rows here. Full specifications come one at a time, when the feature
+is actually next.
+
+Create `bugs/INDEX.md` as a signpost at the same time: it points at the table above
+and carries **no second table and no second counter**. A bug gets its own page
+under `bugs/` only when the row is too small for the finding, and that page adds to
+the row rather than replacing it.
 
 ---
 
