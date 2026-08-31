@@ -489,7 +489,14 @@ below says which rung it leaves behind:
 | Build it | `agent-skills:build auto` | the code, one commit per task; board to `In Progress` |
 | Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | nothing by themselves: all three print. **You** carry the ship decision into the pull request text; board to `In Review` once the build comes back green |
 | Prove it | `superpowers:verification-before-completion` | nothing, it demands the fresh evidence |
-| Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge; board to `Done`, owner cleared |
+| Ship it | the forge's pull-request command, then `superpowers:finishing-a-development-branch` | the pull request and the merge; board to `Done`, owner cleared |
+
+**Name the command that reaches this repository's forge.** `gh` speaks to
+github.com and nothing else; a self-hosted Forgejo or Gitea needs `tea pr create
+--login <name>`, GitLab needs `glab`. Read `git remote get-url origin` and write
+the command that actually works into this file. A tool that cannot reach the
+repository stops the last rung of the chain, and it stops it after the work is
+done.
 
 **A fresh worktree is empty.** Git shares the history, not the working directory:
 the installed packages, the local environment file and the hook path are missing,
