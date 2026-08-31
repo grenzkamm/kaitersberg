@@ -112,16 +112,17 @@ as the product lives.
 | **1** | `/plan-product <briefing>` | PRD, feature board with waves, data model, journeys, roles, app shell, `CLAUDE.md` | Kaitersberg |
 | **2** | `/architecture` | The house style, decided once for all features | Kaitersberg |
 | **3** | `/scaffold` | `PROJ-1`: a repository that actually runs, proven from a clean state | Kaitersberg |
-| **4** | `mattpocock:grilling` | One question at a time until you and the agent mean the same feature | outside |
-| **5** | `agent-skills:spec` | The specification, into `features/PROJ-x-<name>/spec.md` | outside |
-| **6** | you | `status: ready` and `verified` in that spec, `Ready` on the board | **you** |
-| **7** | `agent-skills:plan` | The task list, into `features/PROJ-x-<name>/tasks.md` | outside |
-| **8** | `superpowers:using-git-worktrees` | The branch and the worktree, without landing one inside another | outside |
-| **9** | `agent-skills:build auto` | The code, one commit per task | outside |
-| **10** | `agent-skills:test` · `review` · `ship` | The proof, the diff against the spec, the go or no-go - **in a session that did not build it** | outside |
-| **11** | `superpowers:verification-before-completion` | No completion claim without the fresh evidence in the same message | outside |
-| **12** | `gh pr create`, then `superpowers:finishing-a-development-branch` | The pull request and the merge | you |
-| | **↻** | Steps 4 to 12 again, for the next feature in wave order | |
+| **4** | you, on the default branch | The claim: the owner in `features/INDEX.md`, committed **and pushed** | **you** |
+| **5** | `mattpocock:grilling` | One question at a time until you and the agent mean the same feature | outside |
+| **6** | `agent-skills:spec` | The specification, into `features/PROJ-x-<name>/spec.md` | outside |
+| **7** | you | `status: ready` and `verified` in that spec, `Ready` on the board | **you** |
+| **8** | `agent-skills:plan` | The task list, into `features/PROJ-x-<name>/tasks.md` | outside |
+| **9** | `superpowers:using-git-worktrees` | The branch and the worktree, without landing one inside another | outside |
+| **10** | `agent-skills:build auto` | The code, one commit per task | outside |
+| **11** | `agent-skills:test` · `review` · `ship` | The proof, the diff against the spec, the go or no-go - **in a session that did not build it** | outside |
+| **12** | `superpowers:verification-before-completion` | No completion claim without the fresh evidence in the same message | outside |
+| **13** | the forge's own pull-request command, then `superpowers:finishing-a-development-branch` | The pull request and the merge | you |
+| | **↻** | Steps 4 to 13 again, for the next feature in wave order | |
 
 ## Running it without knowing any of this
 

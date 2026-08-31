@@ -96,6 +96,21 @@ Six stages, none of them Kaitersberg's. What they read is what the three stages
 above wrote, and each one refuses to start when what it needs is missing: a stage
 that cannot proceed says so instead of inventing the input it lacks.
 
+### 0 · The claim
+
+You, by hand, on the default branch.
+
+**Receives** the board.
+
+**Decides** that this feature is yours to work on now, against the pick rule: the
+rung is `Roadmap`, every dependency is `Done`, no owner is set, nothing serialized
+before it in its wave is still open.
+
+**Hands over** one edit: the owner, in `features/INDEX.md`. **Committed and
+pushed.** A claim that sits in a local commit is as invisible as one inside a
+worktree, and the next session takes a feature that is already owned. Everything
+the board records lives on the default branch, this included.
+
 ### 1 · Alignment
 
 `mattpocock:grilling`
@@ -145,6 +160,18 @@ a draft.
 specification's frontmatter, and `Ready` on the board. A checkpoint that a skill can
 set itself is not a checkpoint.
 
+Note that the rung on the board and `status:` in the frontmatter are two
+vocabularies. The board says `Spec`; the frontmatter of a freshly written
+specification says `draft`. An invented third value turns "is this released?" into
+a matter of interpretation.
+
+**Is withdrawn the moment the specification changes.** Whoever touches the content
+of a released spec removes `verified` and sets `status: draft`, including when the
+build itself makes the change necessary, and including a correction that is
+obviously right. The withdrawal does not move the board: the work has not gone
+backwards, only the agreement has. It blocks the merge until the specification is
+signed again.
+
 ### 4 · Task list
 
 `agent-skills:plan`, told to write into `features/PROJ-x-<name>/tasks.md`
@@ -158,6 +185,14 @@ is copied in as the check each group has to pass.
 
 **Hands over** a plan of work that can be executed without further interpretation.
 
+**The named skill is not optional here, and this is where it is hardest.** The
+existing task lists next to the new one are richer than what the skill produces by
+itself, so a session is tempted to read them and write the file by hand. That has
+happened. Give the skill the house format in the call instead, and say at the end
+which skill was called: a step that is announced and then done by hand is a defect
+even when the result is good, because nobody sees it and the next feature decides
+again.
+
 ### 5 · Build
 
 `agent-skills:build auto`, given both paths
@@ -165,8 +200,13 @@ is copied in as the check each group has to pass.
 **Receives** the task list.
 
 **Decides** nothing that the plan already answered - and stops the moment reality
-disagrees with it. It claims the feature on the board, works in its own isolated
-copy of the repository, and runs the gate as the task list tells it to. Tests are
+disagrees with it. It moves the rung on the board, works in its own isolated copy
+of the repository, and runs the gate as the task list tells it to.
+
+A fresh worktree is empty: git shares the history, not the working directory. The
+installed packages, the local environment file and the hook path are missing, and
+the first test run dies on that rather than on the code. Setting it up is part of
+isolating the feature, not a surprise afterwards. Tests are
 written before the code and seen failing first: a test that was never red proves
 nothing.
 
@@ -190,6 +230,12 @@ first makes a reader explain the implementation instead of judging it. The test 
 gives every acceptance criterion a verdict against the running system. The ship pass
 turns both into a go or no-go with a rollback plan.
 
+**Green is not the proof; a mutation is.** Break the behaviour on purpose, one
+break per criterion, and check that exactly the criterion that owns the break goes
+red. Coverage counts tests, not what they hold. The first feature run this way came
+out of the review with every criterion covered and the whole gate green, and the
+mutation found an assertion that could not fail at all.
+
 **Hands over** findings, each with a location and a consequence, and a verdict. Only
 two things block: the feature does not do what was released, or it does something
 that must not happen - data loss, a hole in the isolation, personal data where it
@@ -209,7 +255,12 @@ that made them useful.
 
 **Decides** nothing at first. The request assembles: what was released, what was
 built, what the review and the test report said, what migrates, what configuration
-is new, and how a reviewer can verify it by hand. Every claim traces to an artefact;
+is new, and how a reviewer can verify it by hand. It is opened with the command
+that reaches this repository's forge, which is not always `gh`: a self-hosted
+Forgejo or Gitea needs `tea`, GitLab needs `glab`, and the token needs whatever
+scope that forge requires to open a request. Both are worth checking before the
+work is finished, because this rung is the last one and a tool that cannot reach
+the repository stops it after everything else is done. Every claim traces to an artefact;
 a body claiming green while a check is red teaches the next reviewer not to read
 yours.
 
