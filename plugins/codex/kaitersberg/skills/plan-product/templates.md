@@ -494,7 +494,11 @@ below says which rung it leaves behind:
 **The named skills are not optional.** A step that is announced and then done by
 hand is a defect even when the result looks good: nobody notices, and the next
 feature decides again. Whoever thinks a skill is wrong for the job says so and
-stops, instead of working around it. This has already happened once: a session
+stops, instead of working around it. **Say at the end of every step which skill you called.** Whoever called none says
+so first and unasked. A skipped skill nobody sees repeats itself on the next
+feature; one that appears in the report becomes a finding about this document.
+
+This has already happened once: a session
 read the neighbouring task lists, wrote the list itself in their format, and only
 admitted it when asked. **Give a skill the house format in the call** rather than
 replacing it.
