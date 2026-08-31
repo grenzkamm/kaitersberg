@@ -548,6 +548,13 @@ because no skill in this framework carries them any more:
   one that starts at the specification notices what is missing.
 - **Every acceptance criterion needs a test that would go red if the behaviour
   broke.** Not "tests are green": this criterion, this test.
+- **And prove that with a mutation, not with green.** Break the behaviour on
+  purpose, one per criterion: replace the sort with the raw order, swap two
+  groups, nail a counter to zero, change one word of a fixed string. Then check
+  that **exactly the criterion that owns the break** goes red. Green proves the
+  tests run; red proves they hold something. A mutation that changes nothing
+  visible is a bad mutation, not a passed test: find a better one. The probe goes
+  into the report, one line per break and the criterion that caught it.
 
 `agent-skills:ship` prints a decision but does not write it, and neither do
 `agent-skills:test` and `agent-skills:review`. **Put the block verbatim into the
