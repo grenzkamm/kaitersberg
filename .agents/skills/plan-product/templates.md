@@ -485,11 +485,20 @@ below says which rung it leaves behind:
 | Specify it | `agent-skills:spec` | `features/PROJ-x-<name>/spec.md`, board to `Spec` |
 | Release it | **you** | `status: ready` and `verified` in that spec, board to `Ready` |
 | Cut the task list | `agent-skills:plan`, **not optional** | `features/PROJ-x-<name>/tasks.md` |
-| Isolate it | `superpowers:using-git-worktrees` | the branch and the worktree |
+| Isolate it | `superpowers:using-git-worktrees` | the branch, the worktree and its setup |
 | Build it | `agent-skills:build auto` | the code, one commit per task; board to `In Progress` |
 | Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | nothing by themselves: all three print. **You** carry the ship decision into the pull request text; board to `In Review` once the build comes back green |
 | Prove it | `superpowers:verification-before-completion` | nothing, it demands the fresh evidence |
 | Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge; board to `Done`, owner cleared |
+
+**A fresh worktree is empty.** Git shares the history, not the working directory:
+the installed packages, the local environment file and the hook path are missing,
+and the first test run dies on it. Set it up right after creating it, from inside
+the worktree. The exact commands belong in `docs/local-dev.md`; typically the
+install, a copy of the environment file from the main checkout, and the hook path.
+
+Services run once for all worktrees from the main checkout, and browser binaries
+live in a global cache. Neither belongs in here.
 
 **The named skills are not optional.** A step that is announced and then done by
 hand is a defect even when the result looks good: nobody notices, and the next
@@ -563,7 +572,10 @@ never abort - an abort leaves half a state behind and reports that it is done.
   a defect that passes review because nobody specified otherwise.
 - **The words in `docs/data-model.md` are the words** - in code, in the interface,
   in commits. No synonyms.
-- **Never touch `.env.local` or real secrets.** Print values for the user to paste.
+- **Never touch `.env.local` or real secrets.** Print values for the user to
+  paste. **The one exception:** copying the file unchanged into a worktree of the
+  same repository. Copy yes, open no, print no, write anywhere else no. A copy
+  exposes no value; a `cat` does.
 - **Never work in another feature's files while it has an owner.**
 - **Never build on the main branch.** Every feature gets its own worktree, created
   by `superpowers:using-git-worktrees`, which checks for existing isolation first
