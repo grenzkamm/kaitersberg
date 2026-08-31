@@ -8,6 +8,10 @@ The same thing as one picture, including every file each stage touches:
 [workflow.excalidraw](workflow.excalidraw), or [workflow-de.excalidraw](workflow-de.excalidraw)
 in German.
 
+Nobody has to hold this in their head to run it. The `CLAUDE.md` that step 1 writes
+into the product repository carries the chain, and one sentence per session is
+enough: see **Running it without knowing any of this** in the README.
+
 Kaitersberg owns the first three stages. Everything after them is done by skills
 from outside this framework, and they are described here too, because a process
 that stops where the tooling changes hands is not a process.

@@ -123,6 +123,49 @@ as the product lives.
 | **12** | `gh pr create`, then `superpowers:finishing-a-development-branch` | The pull request and the merge | you |
 | | **↻** | Steps 4 to 12 again, for the next feature in wave order | |
 
+## Running it without knowing any of this
+
+You do not have to remember the chain, and neither does the next session. Step 1
+writes a `CLAUDE.md` into the product repository that carries it: where the
+documents are, which skill does which step, and which rung of the board each step
+leaves behind. Every session reads that file first.
+
+So after the product is planned, one sentence runs a feature, over and over, in a
+fresh session each time:
+
+**Claude Code**
+
+```text
+cd <product repository> && claude
+```
+
+```text
+PROJ-7. Read CLAUDE.md and features/INDEX.md, see where the feature stands, and do
+the next step of the chain.
+```
+
+**Codex**
+
+Start a thread in the product repository and paste the same sentence. Codex reads
+`AGENTS.md`, which `/plan-product` writes with the same content.
+
+The board is what makes this work. It says which rung the feature is on, the chain
+table says what comes after that rung, and the session finds both without being
+told. You never name a skill; the file does.
+
+**Two steps stay yours, and no sentence delegates them:**
+
+- **The release.** `status: ready` and `verified` in that feature's `spec.md`, and
+  `Ready` on the board. No skill sets those two lines, which is the whole point of
+  them.
+- **A fresh session for the judgement.** Close the session that built the feature
+  and open a new one before `agent-skills:test`. A reviewer who watched it being
+  built shares the assumptions that produced its bugs, and a chat window with the
+  build still in it is not a fresh reviewer.
+
+When something goes wrong mid-run, the same sentence still works: the board has not
+moved, so the next session starts where the last one stopped.
+
 [docs/process.md](docs/process.md) tells the same story the other way round: what
 each stage decides, what it receives and hands over, where the work comes back and
 where a person is required.

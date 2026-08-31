@@ -426,7 +426,10 @@ feat: Plan the product - PRD, feature map, data model, app shell
 - [ ] Mockup navigation order and groups preserved, or the deviation is explicit
 - [ ] Design system only if visual input existed
 - [ ] Local dev planned, `.env.local.example` written, `.env.local` untouched
-- [ ] `AGENTS.md` written: reading list, commands, status ladder, ask-do-not-invent,
-      and the named chain of skills that builds a feature here
-- [ ] Any other harness context file in the root carries the same content, not an older one
+- [ ] `AGENTS.md` written: where the documents are, how to start a session, the
+      reading list, commands, the chain with the rung each step leaves behind, the
+      two branch rules, and ask-do-not-invent
+- [ ] `bugs/INDEX.md` written as a signpost, with no second table and no second counter
+- [ ] Any other harness context file in the root carries the same content, not an
+      older one, and both say they are kept identical
 - [ ] No code, no config files, no services started

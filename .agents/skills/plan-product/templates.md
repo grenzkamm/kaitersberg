@@ -404,28 +404,58 @@ is the only thing that makes that visible.
 ## `AGENTS.md`
 
 Short on purpose. Point to the documents and require reading them; do not restate
-them or rely on harness-specific import syntax.
+them or rely on harness-specific import syntax. If the repository root carries
+another harness's context file, write the **same** content into it and say in both
+that they are kept identical: two context files that disagree are worse than one
+that is merely terse.
 
 ```markdown
 # <Product>
 
 <Two sentences: what this is and who uses it.>
 
+## Where the documents are
+
+Here. All of it in this repository, next to the code it describes:
+
+| Place | What |
+|---|---|
+| `docs/` | the plan and the architecture |
+| `docs/sources/` | what came from outside, and what rests on it |
+| `features/INDEX.md` | the board, and the bug register inside it |
+| `features/PROJ-x-*/` | `spec.md` and `tasks.md` per feature |
+| `bugs/` | the long bug pages; numbers come from the register alone |
+| `.kaitersberg/PROJ-x/` | what a build round produces: evidence, `ship.md`, reports |
+
+A specification has to be true at a commit and findable at that commit a year
+later, by a session with no network. That is why it lives here and not in a wiki.
+
+## How to start a session
+
+You do not have to remember the chain. Open a session in this repository and say:
+
+> `PROJ-x. Read AGENTS.md and features/INDEX.md, see where the feature stands, and
+> do the next step of the chain.`
+
+The board says which rung the feature is on, and the table below says what comes
+after it. Two steps are yours and no skill does them: the release, and starting a
+fresh session for the judgement.
+
 ## Read these
 
-Read by the role of your session, not everything every time - the delivery half of
-the pipeline runs many sessions per feature, and a reading list every one of them
-pays for in full is the largest avoidable cost in the loop:
+Read by the role of your session, not everything every time. Many sessions run per
+feature, and a reading list every one of them pays for in full is the largest
+avoidable cost:
 
-- **Planning or designing** (product plan, spec, design, board changes): read
-  completely - `docs/PRD.md`, `features/INDEX.md`, `docs/data-model.md`,
-  `docs/access.md`, `docs/app-shell.md`, and `docs/architecture.md` once it exists.
+- **Planning, specifying or changing the board**: read completely - `docs/PRD.md`,
+  `features/INDEX.md`, `docs/data-model.md`, `docs/access.md`, `docs/app-shell.md`,
+  and `docs/architecture.md` once it exists.
 - **Building, reviewing or testing one feature**: the feature's own folder
   (`features/PROJ-x-<name>/`), your feature's row and the pick rule in
   `features/INDEX.md`, the commands in `docs/local-dev.md`, and from
-  `docs/architecture.md` the gate commands, conventions and budgets. The spec and
-  design already carry the plan answers that apply here; read a plan document only
-  when they point at it.
+  `docs/architecture.md` the gate commands, conventions and budgets. The
+  specification already carries the plan answers that apply here; read a plan
+  document only when it points at one.
 - **A sub-agent given a task brief**: only what the brief hands you. The brief was
   cut so nothing else is needed.
 
@@ -438,43 +468,63 @@ pays for in full is the largest avoidable cost in the loop:
 | Browser E2E | |
 | Migrate | |
 | Reset data | |
+| Quality gate | |
 
 <From docs/local-dev.md. Ports: <the range>.>
 
 ## How work moves
-`Roadmap` → `Spec` → `Ready` → `In Progress` → `In Review` → `Done`
+`claim` → `Spec` → `Ready` → `In Progress` → `In Review` → `Done`
 
 The product was planned by `$plan-product`, `$architecture` and `$scaffold`. Every
-feature after PROJ-1 runs on skills from outside this framework:
+feature after PROJ-1 runs on skills from outside this framework, and every row
+below says which rung it leaves behind:
 
-| Step | Skill | Writes |
+| Step | With | Writes |
 |---|---|---|
-| Agree what the feature is | `mattpocock:grilling` | nothing, it asks until you both know |
-| Specify it | `agent-skills:spec` | `features/PROJ-x-<name>/spec.md` |
-| Release it | you | `status: ready` and `verified` in that spec, `Ready` on the board |
+| Claim it | **you**, on the default branch | `Owner` in `features/INDEX.md`, before anything else happens |
+| Agree what it is | `mattpocock:grilling` | nothing, it asks until you both mean the same feature |
+| Specify it | `agent-skills:spec` | `features/PROJ-x-<name>/spec.md`, board to `Spec` |
+| Release it | **you** | `status: ready` and `verified` in that spec, board to `Ready` |
 | Cut the task list | `agent-skills:plan` | `features/PROJ-x-<name>/tasks.md` |
 | Isolate it | `superpowers:using-git-worktrees` | the branch and the worktree |
-| Build it | `agent-skills:build auto` | the code, one commit per task |
-| Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | the reports named in each skill |
+| Build it | `agent-skills:build auto` | the code, one commit per task; board to `In Progress` |
+| Judge it, in a session that did not build it | `agent-skills:test`, `agent-skills:review`, `agent-skills:ship` | `.kaitersberg/PROJ-x/`; board to `In Review` once the build comes back green |
 | Prove it | `superpowers:verification-before-completion` | nothing, it demands the fresh evidence |
-| Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge |
+| Ship it | `gh pr create`, then `superpowers:finishing-a-development-branch` | the pull request and the merge; board to `Done`, owner cleared |
 
-Both writing skills put their output where they are told, so name the path in the
-call. Left alone, `agent-skills:spec` writes `SPEC.md` into the repository root and
+**Name the paths when you call the two writing skills.** Left alone,
+`agent-skills:spec` writes `SPEC.md` into the repository root and
 `agent-skills:plan` writes `tasks/plan.md`, which is one specification per
 repository rather than one per feature.
 
-The board is `features/INDEX.md`; a feature is claimed by setting owner and status
-in one edit before any work starts.
-
 **The board is written on the default branch, never on a feature branch.** A claim
 committed inside a worktree is invisible to every other session until the feature
-merges, so the next one takes a feature that is already owned. Two branches editing
-the same table row collide on every merge. `spec.md` and `tasks.md` belong to the
-feature branch; `features/INDEX.md` does not.
+merges, so the next one takes a feature that is already owned, and two branches
+editing the same table row collide on every merge.
 
-A bug starts at `mattpocock:diagnosing-bugs` and is proved fixed by
-`agent-skills:test` before anything else. A merge conflict is run by
+**`spec.md` and `tasks.md` are written on the default branch too**, because they
+come before the worktree in the chain. A release has to be visible before anybody
+builds against it, and the Spec link in the board must not point at a file that
+exists on one branch only. The feature branch then carries the code, and whatever
+the build has to change in the specification.
+
+Two things this project asks of the review beyond what the skill does on its own,
+because no skill in this framework carries them any more:
+
+- **Read `features/PROJ-x-<name>/spec.md` first and write down what you expect,
+  before opening the diff.** A review that starts at the code judges what is there;
+  one that starts at the specification notices what is missing.
+- **Every acceptance criterion needs a test that would go red if the behaviour
+  broke.** Not "tests are green": this criterion, this test.
+
+`agent-skills:ship` prints a decision but does not write it. **Save the block
+verbatim to `.kaitersberg/PROJ-x/ship.md`** before opening the pull request: a
+decision that only ever appeared in a chat window is not evidence, and silence is
+not a yes. Its rollback plan belongs in the pull request text.
+
+A bug starts at `mattpocock:diagnosing-bugs` and gets a failing test from
+`agent-skills:test` before anything is repaired; its number comes from the register
+in `features/INDEX.md` and from nowhere else. A merge conflict is run by
 `mattpocock:resolving-merge-conflicts`: read why each side exists in that feature's
 own `spec.md`, keep both intents where they fit, then run the gate. Always resolve,
 never abort - an abort leaves half a state behind and reports that it is done.
@@ -486,8 +536,13 @@ never abort - an abort leaves half a state behind and reports that it is done.
   in commits. No synonyms.
 - **Never touch `.env.local` or real secrets.** Print values for the user to paste.
 - **Never work in another feature's files while it has an owner.**
-- **Never build on the main branch.** Every feature gets its own worktree.
+- **Never build on the main branch.** Every feature gets its own worktree, created
+  by `superpowers:using-git-worktrees`, which checks for existing isolation first
+  so no worktree lands inside another.
+- **Never touch `features/INDEX.md` on a feature branch.** The board belongs to the
+  default branch.
 - Commits: `feat(PROJ-x): …`, `fix(PROJ-x): …`, `docs(PROJ-x): …`, and on a bug
   branch `test(BUG-n): …` before `fix(BUG-n): …`. One commit per task or step,
-  never one at the end of a feature.
+  never one at the end of a feature. Repository-wide work that belongs to no
+  feature takes a scopeless `docs:` or `chore:`.
 ```
