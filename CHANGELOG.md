@@ -3,7 +3,7 @@
 Versions are the plugin versions in both manifests. The format is kept short: what
 changed, and why it was wrong before.
 
-## Unreleased
+## 0.7.0 - 2026-08-31
 
 **Kaitersberg keeps three skills and hands the rest over.** `/plan-product`,
 `/architecture` and `/scaffold` stay: they turn a briefing into a plan and a
@@ -28,6 +28,28 @@ including the stages this framework no longer performs.
 
 The three rungs around the build now belong to the human on the board as well as in
 prose: `Ready` is a release a person signs, and no skill in here moves it.
+
+**What `/plan-product` writes into a product now carries the chain**, so nobody has
+to rediscover it. Most of that text was learned by walking one real feature from
+the claim to the merge and watching where it broke: a claim that was committed and
+not pushed and therefore invisible; a board rung mirrored into the frontmatter
+status, inventing a value the lifecycle does not have; a session that announced the
+plan skill and then wrote the file by hand; a fresh worktree with no packages, no
+environment file and no hook path; a released specification corrected while its
+signature still stood; a green gate with an assertion that could not fail; and
+`gh pr create` against a self-hosted forge it cannot reach.
+
+Each of those is now a sentence in the template, and two of them are rules with
+teeth: a named skill is not optional and every step reports which one it called,
+and a withdrawn release blocks the merge instead of moving the board backwards.
+
+**Also new:** a bug register in the board skeleton with exactly one counter, the
+worktree setup as part of isolating a feature, the mutation as the proof a green
+gate is not, and two drawings of the whole chain in `docs/`, English and German.
+
+**Removed:** `.kaitersberg/` as a directory the template plants. The skills that
+filled it are gone, and the three that replaced them print into the session instead
+of writing files. The ship decision goes into the pull request text.
 
 ## 0.6.3 - 2026-08-26
 
