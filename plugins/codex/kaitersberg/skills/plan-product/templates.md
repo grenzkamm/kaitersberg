@@ -507,6 +507,18 @@ builds against it, and the Spec link in the board must not point at a file that
 exists on one branch only. The feature branch then carries the code, and whatever
 the build has to change in the specification.
 
+**And every change to the default branch is pushed, not only committed.** A claim
+that sits in a local commit is as invisible to every other session as one inside a
+worktree. Without the push the board is decoration.
+
+**The rung on the board and `status:` in the frontmatter are two vocabularies.**
+The board knows `Roadmap`, `Spec`, `Ready`, `In Progress`, `In Review`, `Done`,
+`Dropped`. The frontmatter knows `draft`, `ready`, `in-progress`, `done`,
+`abgebrochen`, and nothing else. A freshly written specification is `draft` even
+while the board already says `Spec`; only a human sets `ready`, together with
+`verified`. An invented third value turns "is this released?" into a matter of
+interpretation.
+
 Two things this project asks of the review beyond what the skill does on its own,
 because no skill in this framework carries them any more:
 
