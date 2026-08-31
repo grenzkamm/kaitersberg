@@ -565,9 +565,13 @@ never abort - an abort leaves half a state behind and reports that it is done.
 
 ## Rules
 - **Nobody changes a released specification quietly.** Whoever touches the content
-  of a `spec.md` that carries `verified` removes `verified`, sets `status: draft`,
-  moves the board back to `Spec` and says so. Otherwise a signature covers text
-  nobody read. This holds for a correction that is obviously right as well.
+  of a `spec.md` that carries `verified` removes `verified`, sets `status: draft`
+  and says so. Otherwise a signature covers text nobody read. This holds for a
+  correction that is obviously right, and for a change the build itself makes
+  necessary.
+- **A withdrawn release does not move the board, it blocks the merge.** The work
+  has not gone backwards, only the agreement has: rungs move forward. The feature
+  stays where it is and may not merge until the specification is signed again.
 - **Where the documents are silent, ask. Do not invent.** An invented behaviour is
   a defect that passes review because nobody specified otherwise.
 - **The words in `docs/data-model.md` are the words** - in code, in the interface,
