@@ -563,6 +563,24 @@ because no skill in this framework carries them any more:
   visible is a bad mutation, not a passed test: find a better one. The probe goes
   into the report, one line per break and the criterion that caught it.
 
+**A finding that lives only in the pull request is lost.** Every review ends with
+`features/PROJ-x-<name>/proof.md`: what was found, with what evidence, and which
+mutation turned it red. The numbers belong to the feature - `PROJ-2/F-1` - and to
+no second counter. From there **every** finding goes to exactly one of four homes:
+
+| The finding is ...                             | Its home                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| fixed on the spot                              | stays in the `proof.md` alone, with its red proof                           |
+| the business of a feature already on the board | one line in that feature's cut - **no** board row of its own                |
+| a real leftover nobody owns                    | a `PROJ-x` row "Leftovers from the PROJ-n review", linked to the `proof.md` |
+| a reproducible defect in operation             | the bug register, with a reproduction and a failing test before any repair  |
+
+**The finding and the work on it are two things.** The finding is true at its
+commit and never changes; the work gets scheduled and closed. Press both into one
+line and you lose either the evidence or the date. And **no issue tracker**: the
+board is the one counter, and a second one beside it hands out the same number
+twice - the very trap the bug register warns about.
+
 `agent-skills:ship` prints a decision but does not write it, and neither do
 `agent-skills:test` and `agent-skills:review`. **Put the block verbatim into the
 pull request text** before opening it: a decision that only ever appeared in a chat
